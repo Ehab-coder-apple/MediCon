@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Scanner Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            grid-column: 1 / -1;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .preset-barcodes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .preset-btn {
+            padding: 10px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .preset-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .output {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .output-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-left: 3px solid #667eea;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .log-entry.success {
+            border-left-color: #4caf50;
+            color: #4caf50;
+        }
+        
+        .log-entry.error {
+            border-left-color: #f44336;
+            color: #f44336;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 3px;
+            font-size: 13px;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Barcode Scanner Simulator</h1>
+        <p class="subtitle">Test barcode scanning without physical hardware</p>
+        
+        <div class="info-box">
+            ℹ️ This simulator sends barcode data to the MediCon web app. Make sure the Sales page is open in another tab.
+        </div>
+        
+        <div class="form-group">
+            <label for="barcode">Barcode to Scan:</label>
+            <input type="text" id="barcode" placeholder="Enter barcode or select preset" value="5901234123457">
+        </div>
+        
+        <div class="form-group">
+            <label>Preset Barcodes:</label>
+            <div class="preset-barcodes">
+                <button class="preset-btn" onclick="setBarcode('5901234123457')">Test Medicine</button>
+                <button class="preset-btn" onclick="setBarcode('5901234123458')">Paracetamol</button>
+                <button class="preset-btn" onclick="setBarcode('5901234123459')">Aspirin</button>
+                <button class="preset-btn" onclick="setBarcode('MED001')">Product Code</button>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="quantity">Quantity (optional):</label>
+            <input type="number" id="quantity" placeholder="Leave empty to scan only" min="1" value="">
+        </div>
+        
+        <div class="button-group">
+            <button class="btn-primary" onclick="simulateScan()">📱 Simulate Scan</button>
+            <button class="btn-secondary" onclick="clearLogs()">Clear Logs</button>
+        </div>
+        
+        <div class="output">
+            <div class="output-title">📋 Simulation Log:</div>
+            <div id="logs"></div>
+        </div>
+    </div>
+    
+    <script>
+        function setBarcode(barcode) {
+            document.getElementById('barcode').value = barcode;
+            addLog(`Barcode set to: ${barcode}`, 'success');
+        }
+        
+        function simulateScan() {
+            const barcode = document.getElementById('barcode').value;
+            const quantity = document.getElementById('quantity').value;
+
+            if (!barcode) {
+                addLog('❌ Please enter a barcode', 'error');
+                return;
+            }
+
+            addLog(`🔍 Scanning barcode: ${barcode}`, 'success');
+
+            // Try to find barcode field in parent window
+            try {
+                const parentWindow = window.opener;
+
+                if (!parentWindow) {
+                    addLog('❌ Parent window not found', 'error');
+                    addLog('💡 Make sure you opened this simulator from the MediCon page', 'info');
+                    return;
+                }
+
+                // Try multiple selectors to find the product search field
+                let barcodeField = parentWindow.document.getElementById('productSearch');
+
+                if (!barcodeField) {
+                    barcodeField = parentWindow.document.getElementById('product_search');
+                }
+
+                if (!barcodeField) {
+                    barcodeField = parentWindow.document.querySelector('input[placeholder*="barcode"]');
+                }
+
+                if (!barcodeField) {
+                    barcodeField = parentWindow.document.querySelector('input[placeholder*="Search by product"]');
+                }
+
+                if (!barcodeField) {
+                    barcodeField = parentWindow.document.querySelector('input[name*="barcode"]');
+                }
+
+                if (barcodeField) {
+                    console.log('✅ Found barcode field:', barcodeField);
+                    barcodeField.value = barcode;
+                    barcodeField.dispatchEvent(new Event('input', { bubbles: true }));
+                    barcodeField.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // Simulate Enter key press to trigger barcode processing
+                    const enterEvent = new KeyboardEvent('keydown', {
+                        key: 'Enter',
+                        code: 'Enter',
+                        keyCode: 13,
+                        which: 13,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    barcodeField.dispatchEvent(enterEvent);
+                    barcodeField.focus();
+
+                    addLog(`✅ Barcode sent to MediCon: ${barcode}`, 'success');
+                    addLog(`💡 Product should appear in 1-2 seconds...`, 'info');
+
+                    if (quantity) {
+                        setTimeout(() => {
+                            const quantityField = parentWindow.document.querySelector('input[name*="quantity"]');
+                            if (quantityField) {
+                                quantityField.value = quantity;
+                                quantityField.dispatchEvent(new Event('input', { bubbles: true }));
+                                addLog(`✅ Quantity set to: ${quantity}`, 'success');
+                            }
+                        }, 1500);
+                    }
+                } else {
+                    addLog('❌ Product search field not found in MediCon', 'error');
+                    addLog('💡 Make sure you are on the Create New Sale page', 'info');
+                    addLog('💡 The barcode scanner component should be visible', 'info');
+                }
+            } catch (error) {
+                addLog(`❌ Error: ${error.message}`, 'error');
+                addLog('💡 Make sure MediCon is open in another tab', 'info');
+                console.error('Simulator error:', error);
+            }
+        }
+        
+        function addLog(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = message;
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+            addLog('Logs cleared', 'success');
+        }
+        
+        // Allow Enter key to trigger scan
+        document.getElementById('barcode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                simulateScan();
+            }
+        });
+        
+        // Initial log
+        addLog('🎮 Barcode Scanner Simulator Ready', 'success');
+        addLog('💡 Enter barcode and click "Simulate Scan"', 'info');
+    </script>
+</body>
+</html>
+
