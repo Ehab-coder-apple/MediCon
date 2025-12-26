@@ -81,7 +81,21 @@ class AdminDashboardController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::with('role')->paginate(10);
+        $currentUser = auth()->user();
+
+        $query = User::with('role');
+
+        // For pharmacy/tenant admins, only show users that belong to their tenant
+        // and hide system-level/super admin accounts (e.g. Program Owner)
+        // as well as any users without an assigned role (legacy/system users).
+        if (!$currentUser->is_super_admin) {
+            $query->where('tenant_id', $currentUser->tenant_id)
+                  ->where('is_super_admin', false)
+                  ->whereNotNull('role_id');
+        }
+
+        $users = $query->paginate(10);
+
         return view('admin.users', compact('users'));
     }
 }
