@@ -133,12 +133,20 @@
                 <!-- Navigation Menu -->
                 <nav class="mt-4 overflow-y-auto" style="max-height: calc(100vh - 200px);">
                     @php
+                        $user = auth()->user();
                         $routePrefix = '';
-                        if (auth()->user()->hasRole('admin')) {
+
+                        // Detect when a super admin is impersonating a tenant
+                        $isSuperAdminImpersonating = method_exists($user, 'isSuperAdmin')
+                            ? $user->isSuperAdmin() && session()->has('current_tenant_id')
+                            : ($user->is_super_admin ?? false) && session()->has('current_tenant_id');
+
+                        if ($isSuperAdminImpersonating || $user->hasRole('admin')) {
+                            // When impersonating, treat super admin like a tenant admin for route names
                             $routePrefix = 'admin.';
-                        } elseif (auth()->user()->hasRole('pharmacist')) {
+                        } elseif ($user->hasRole('pharmacist')) {
                             $routePrefix = 'pharmacist.';
-                        } elseif (auth()->user()->hasRole('sales_staff')) {
+                        } elseif ($user->hasRole('sales_staff')) {
                             $routePrefix = 'sales-staff.';
                         }
                     @endphp
