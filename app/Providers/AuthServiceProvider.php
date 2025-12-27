@@ -37,6 +37,13 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
+        // Super admins can bypass all gate and policy checks
+        Gate::before(function (User $user, string $ability) {
+            if ($user->isSuperAdmin()) {
+                return true;
+            }
+        });
+
         // Define additional gates if needed
         Gate::define('access-admin-dashboard', function (User $user) {
             return $user->hasRole('admin');
