@@ -151,6 +151,52 @@
                             </div>
                         </div>
 
+	                        <!-- Admin Account -->
+	                        <div class="bg-gray-50 p-6 rounded-lg">
+	                            <h3 class="text-lg font-medium text-gray-900 mb-4">Admin Account</h3>
+	                            @if($tenantAdmin)
+	                                <p class="text-sm text-gray-600 mb-4">
+	                                    Current admin: <span class="font-semibold">{{ $tenantAdmin->name }}</span>
+	                                    ({{ $tenantAdmin->email }})
+	                                </p>
+	                            @else
+	                                <p class="text-sm text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+	                                    This tenant does not currently have an assigned admin user. You can set one here.
+	                                </p>
+	                            @endif
+
+	                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+	                                <div>
+	                                    <label for="admin_name" class="block text-sm font-medium text-gray-700">Admin Name</label>
+	                                    <input type="text" name="admin_name" id="admin_name"
+	                                           value="{{ old('admin_name', $tenantAdmin->name ?? '') }}"
+	                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+	                                    <p class="mt-1 text-sm text-gray-500">Leave blank to keep the current name.</p>
+	                                </div>
+
+	                                <div>
+	                                    <label for="admin_email" class="block text-sm font-medium text-gray-700">Admin Email (Login)</label>
+	                                    <input type="email" name="admin_email" id="admin_email"
+	                                           value="{{ old('admin_email', $tenantAdmin->email ?? '') }}"
+	                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+	                                    <p class="mt-1 text-sm text-gray-500">Leave blank to keep the current email.</p>
+	                                </div>
+
+	                                <div>
+	                                    <label for="admin_password" class="block text-sm font-medium text-gray-700">Reset Admin Password</label>
+	                                    <input type="password" name="admin_password" id="admin_password"
+	                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+	                                    <p class="mt-1 text-sm text-gray-500">Fill this to set a new temporary password for the admin.</p>
+	                                </div>
+
+	                                <div>
+	                                    <label for="admin_password_confirmation" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+	                                    <input type="password" name="admin_password_confirmation" id="admin_password_confirmation"
+	                                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
+	                                </div>
+	                            </div>
+	                        </div>
+
                         <!-- Submit Button -->
                         <div class="flex justify-end space-x-4">
                             <a href="{{ route('super-admin.tenants.show', $tenant) }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg transition-colors">

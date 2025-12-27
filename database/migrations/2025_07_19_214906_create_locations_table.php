@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('locations', function (Blueprint $table) {
             $table->id();
-            $table->string('zone'); // Front Store, Storage Room, Fridge, etc.
-            $table->string('cabinet_shelf')->nullable(); // Shelf A, Rack 4, Drawer 1, etc.
-            $table->string('row_level')->nullable(); // Row 2, Level 1, etc.
-            $table->string('position_side')->nullable(); // Position 3, Left, Right, etc.
+            // Use explicit, shorter lengths so composite indexes fit MySQL's index size limits
+            $table->string('zone', 100); // Front Store, Storage Room, Fridge, etc.
+            $table->string('cabinet_shelf', 100)->nullable(); // Shelf A, Rack 4, Drawer 1, etc.
+            $table->string('row_level', 50)->nullable(); // Row 2, Level 1, etc.
+            $table->string('position_side', 50)->nullable(); // Position 3, Left, Right, etc.
             $table->string('full_location'); // Auto-generated full location string
             $table->text('description')->nullable(); // Additional notes about the location
             $table->boolean('is_active')->default(true);
@@ -26,8 +27,9 @@ return new class extends Migration
             // Indexes for better performance
             $table->index('zone');
             $table->index('is_active');
-            $table->index(['zone', 'cabinet_shelf', 'row_level', 'position_side']);
-            $table->unique(['zone', 'cabinet_shelf', 'row_level', 'position_side'], 'unique_location');
+            // Use a single unique index on the generated full_location string
+            // instead of a wide composite index across multiple varchar columns.
+            $table->unique('full_location', 'unique_location_full');
         });
     }
 

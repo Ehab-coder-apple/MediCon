@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\AccessCode;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 class SuperAdminController extends Controller
 {
@@ -48,71 +50,6 @@ class SuperAdminController extends Controller
     }
 
     /**
-     * List all access codes
-     */
-    public function accessCodes(): View
-    {
-        $accessCodes = AccessCode::with(['tenant', 'creator', 'usedBy'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
-
-        return view('super-admin.access-codes.index', compact('accessCodes'));
-    }
-
-    /**
-     * Show form to create new access code
-     */
-    public function createAccessCode(): View
-    {
-        $tenants = Tenant::where('is_active', true)->orderBy('name')->get();
-
-        return view('super-admin.access-codes.create', compact('tenants'));
-    }
-
-    /**
-     * Store new access code
-     */
-    public function storeAccessCode(Request $request): RedirectResponse
-    {
-        $request->validate([
-            'tenant_id' => 'required|exists:tenants,id',
-            'description' => 'nullable|string|max:255',
-            'max_uses' => 'required|integer|min:1|max:100',
-            'expires_at' => 'nullable|date|after:now',
-            'access_type' => 'required|in:admin_setup,user_registration',
-            'role_assignment' => 'required|in:admin,pharmacist,sales_staff',
-        ]);
-
-        $tenant = Tenant::findOrFail($request->tenant_id);
-
-        $accessCode = AccessCode::create([
-            'code' => AccessCode::generateUniqueCode(),
-            'tenant_id' => $tenant->id,
-            'tenant_name' => $tenant->name,
-            'description' => $request->description,
-            'max_uses' => $request->max_uses,
-            'expires_at' => $request->expires_at,
-            'access_type' => $request->access_type,
-            'role_assignment' => $request->role_assignment,
-            'created_by' => auth()->id(),
-        ]);
-
-        return redirect()->route('super-admin.access-codes.index')
-            ->with('success', "Access code {$accessCode->code} created successfully for {$tenant->name}");
-    }
-
-    /**
-     * Revoke an access code
-     */
-    public function revokeAccessCode(AccessCode $accessCode): RedirectResponse
-    {
-        $accessCode->update(['status' => 'revoked']);
-
-        return redirect()->back()
-            ->with('success', "Access code {$accessCode->code} has been revoked");
-    }
-
-    /**
      * List all tenants
      */
     public function tenants(): View
@@ -150,22 +87,56 @@ class SuperAdminController extends Controller
             'subscription_plan' => 'required|in:basic,standard,premium,enterprise',
             'max_users' => 'required|integer|min:1|max:1000',
             'domain' => 'nullable|string|unique:tenants,domain',
+            'admin_name' => 'required|string|max:255',
+            'admin_email' => 'required|email|unique:users,email',
+            'admin_password' => 'required|string|min:8|confirmed',
         ]);
 
-        $validated['slug'] = Str::slug($validated['name']);
+        // Prepare tenant data (exclude admin-specific fields)
+        $tenantData = $validated;
+        unset($tenantData['admin_name'], $tenantData['admin_email'], $tenantData['admin_password']);
+
+        $tenantData['slug'] = Str::slug($tenantData['name']);
         
         // Ensure slug is unique
-        $originalSlug = $validated['slug'];
+        $originalSlug = $tenantData['slug'];
         $counter = 1;
-        while (Tenant::where('slug', $validated['slug'])->exists()) {
-            $validated['slug'] = $originalSlug . '-' . $counter;
+        while (Tenant::where('slug', $tenantData['slug'])->exists()) {
+            $tenantData['slug'] = $originalSlug . '-' . $counter;
             $counter++;
         }
 
-        $tenant = Tenant::create($validated);
+	        DB::transaction(function () use ($tenantData, $validated) {
+	            // Create the tenant
+	            $tenant = Tenant::create($tenantData);
+
+	            // Find (or create) the global admin role
+	            $adminRole = Role::where('name', Role::ADMIN)->first();
+	            if (! $adminRole) {
+	                $adminRole = Role::create([
+	                    'name' => Role::ADMIN,
+	                    'display_name' => 'Admin',
+	                    'description' => 'Pharmacy Administrator',
+	                    'permissions' => Role::getDefaultPermissions(Role::ADMIN),
+	                    'is_active' => true,
+	                ]);
+	            }
+
+	            // Create the initial tenant admin user
+	            User::create([
+	                'name' => $validated['admin_name'],
+	                'email' => $validated['admin_email'],
+	                'password' => Hash::make($validated['admin_password']),
+	                'tenant_id' => $tenant->id,
+	                'role_id' => $adminRole->id,
+	                'is_active' => true,
+	                'is_super_admin' => false,
+	                'email_verified_at' => now(),
+	            ]);
+	        });
 
         return redirect()->route('super-admin.tenants.index')
-                        ->with('success', 'Tenant created successfully.');
+                        ->with('success', 'Tenant and admin account created successfully.');
     }
 
     /**
@@ -190,7 +161,13 @@ class SuperAdminController extends Controller
      */
     public function editTenant(Tenant $tenant): View
     {
-        return view('super-admin.tenants.edit', compact('tenant'));
+        $tenantAdmin = $tenant->users()
+            ->whereHas('role', function ($query) {
+                $query->where('name', Role::ADMIN);
+            })
+            ->first();
+
+        return view('super-admin.tenants.edit', compact('tenant', 'tenantAdmin'));
     }
 
     /**
@@ -198,6 +175,12 @@ class SuperAdminController extends Controller
      */
     public function updateTenant(Request $request, Tenant $tenant): RedirectResponse
     {
+        $tenantAdmin = $tenant->users()
+            ->whereHas('role', function ($query) {
+                $query->where('name', Role::ADMIN);
+            })
+            ->first();
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'pharmacy_name' => 'required|string|max:255',
@@ -213,9 +196,64 @@ class SuperAdminController extends Controller
             'max_users' => 'required|integer|min:1|max:1000',
             'is_active' => 'boolean',
             'domain' => 'nullable|string|unique:tenants,domain,' . $tenant->id,
+            'admin_name' => 'nullable|string|max:255',
+            'admin_email' => 'nullable|email' . ($tenantAdmin ? '|unique:users,email,' . $tenantAdmin->id : '|unique:users,email'),
+            'admin_password' => 'nullable|string|min:8|confirmed',
         ]);
 
-        $tenant->update($validated);
+        // Separate tenant data from admin fields
+        $tenantData = $validated;
+        unset($tenantData['admin_name'], $tenantData['admin_email'], $tenantData['admin_password']);
+
+        $tenant->update($tenantData);
+
+	        // Optionally update the tenant admin user details
+	        if ($tenantAdmin) {
+	            $adminUpdates = [];
+	
+	            if (array_key_exists('admin_name', $validated) && $validated['admin_name'] !== null && $validated['admin_name'] !== '') {
+	                $adminUpdates['name'] = $validated['admin_name'];
+	            }
+	
+	            if (array_key_exists('admin_email', $validated) && $validated['admin_email'] !== null && $validated['admin_email'] !== '') {
+	                $adminUpdates['email'] = $validated['admin_email'];
+	            }
+	
+	            if (!empty($validated['admin_password'])) {
+	                $tenantAdmin->password = Hash::make($validated['admin_password']);
+	            }
+	
+	            if (!empty($adminUpdates) || !empty($validated['admin_password'] ?? null)) {
+	                $tenantAdmin->fill($adminUpdates);
+	                $tenantAdmin->save();
+	            }
+	        } else {
+	            // If no admin exists yet for this tenant but admin details are provided,
+	            // create a new admin user for the tenant.
+	            if (!empty($validated['admin_email']) && !empty($validated['admin_password'])) {
+	                $adminRole = Role::where('name', Role::ADMIN)->first();
+	                if (! $adminRole) {
+	                    $adminRole = Role::create([
+	                        'name' => Role::ADMIN,
+	                        'display_name' => 'Admin',
+	                        'description' => 'Pharmacy Administrator',
+	                        'permissions' => Role::getDefaultPermissions(Role::ADMIN),
+	                        'is_active' => true,
+	                    ]);
+	                }
+
+	                User::create([
+	                    'name' => $validated['admin_name'] ?? ($tenant->pharmacy_name . ' Admin'),
+	                    'email' => $validated['admin_email'],
+	                    'password' => Hash::make($validated['admin_password']),
+	                    'tenant_id' => $tenant->id,
+	                    'role_id' => $adminRole->id,
+	                    'is_active' => true,
+	                    'is_super_admin' => false,
+	                    'email_verified_at' => now(),
+	                ]);
+	            }
+	        }
 
         return redirect()->route('super-admin.tenants.show', $tenant)
                         ->with('success', 'Tenant updated successfully.');

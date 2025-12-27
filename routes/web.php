@@ -26,7 +26,6 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SystemSettingsController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\TenantRoleController;
-use App\Http\Controllers\AccessCodeController;
 use App\Http\Controllers\CodeGeneratorController;
 use App\Http\Controllers\TenantRegistrationController;
 use App\Http\Controllers\SuperAdminReportsController;
@@ -100,16 +99,9 @@ Route::get('/quick-login/{email}', function ($email) {
     return redirect('/login')->with('error', 'User not found');
 })->name('quick-login');
 
-// Access Code Routes (for tenant setup)
-Route::get('/access-code', [AccessCodeController::class, 'showForm'])->name('access-code.form');
-Route::post('/access-code/verify', [AccessCodeController::class, 'verify'])->name('access-code.verify');
-Route::get('/tenant/setup', [AccessCodeController::class, 'showSetupForm'])->name('tenant.setup.form');
-Route::post('/tenant/setup/complete', [AccessCodeController::class, 'completeSetup'])->name('tenant.setup.complete');
-
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
-    'verified',
 ])->group(function () {
     // Default dashboard route - redirects based on user role
     Route::get('/dashboard', function () {
@@ -152,12 +144,6 @@ Route::middleware([
         Route::post('/tenants/{tenant}/activate', [SuperAdminController::class, 'activateTenant'])->name('tenants.activate');
         Route::post('/tenants/{tenant}/impersonate', [SuperAdminController::class, 'impersonateTenant'])->name('impersonate-tenant');
         Route::post('/stop-impersonating', [SuperAdminController::class, 'stopImpersonating'])->name('stop-impersonating');
-
-        // Access Code Management
-        Route::get('/access-codes', [SuperAdminController::class, 'accessCodes'])->name('access-codes.index');
-        Route::get('/access-codes/create', [SuperAdminController::class, 'createAccessCode'])->name('access-codes.create');
-        Route::post('/access-codes', [SuperAdminController::class, 'storeAccessCode'])->name('access-codes.store');
-        Route::post('/access-codes/{accessCode}/revoke', [SuperAdminController::class, 'revokeAccessCode'])->name('access-codes.revoke');
 
         // Platform Management
         Route::get('/analytics', [SuperAdminController::class, 'analytics'])->name('analytics');
@@ -486,17 +472,6 @@ Route::middleware([
         Route::get('/code-generator/preview', [CodeGeneratorController::class, 'previewNext'])->name('code-generator.preview');
         Route::get('/code-generator/statistics', [CodeGeneratorController::class, 'getStatistics'])->name('code-generator.statistics');
     });
-});
-
-// Tenant Registration Routes (Public)
-Route::get('/access-code', [TenantRegistrationController::class, 'showAccessCodeForm'])->name('access-code.form');
-Route::post('/access-code/verify', [TenantRegistrationController::class, 'verifyAccessCode'])->name('access-code.verify');
-Route::post('/tenant/register', [TenantRegistrationController::class, 'register'])->name('tenant.register');
-
-// Admin Setup Routes (Authenticated)
-Route::middleware(['auth'])->group(function () {
-    Route::get('/admin/setup', [TenantRegistrationController::class, 'showAdminSetup'])->name('admin.setup');
-    Route::post('/admin/setup/complete', [TenantRegistrationController::class, 'completeAdminSetup'])->name('admin.setup.complete');
 });
 
 // Documentation Routes

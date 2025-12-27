@@ -65,14 +65,6 @@
                         <span class="font-semibold">Tenant Management</span>
                     </a>
 
-                    <!-- Access Codes -->
-                    <a href="{{ route('super-admin.access-codes.index') }}" class="flex items-center px-6 py-3 hover:bg-gray-800 transition-colors {{ request()->routeIs('super-admin.access-codes.*') ? 'bg-purple-600 border-r-4 border-purple-400' : '' }}" style="color: #FFFFFF !important;">
-                        <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2 2 2 0 01-2 2m-2-4a2 2 0 00-2 2 2 2 0 002 2m0 0V9a2 2 0 012-2M9 7a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h4z"/>
-                        </svg>
-                        <span class="font-semibold">Access Codes</span>
-                    </a>
-
                     <!-- System Settings -->
                     <a href="{{ route('super-admin.settings') }}" class="flex items-center px-6 py-3 hover:bg-gray-800 transition-colors {{ request()->routeIs('super-admin.settings') ? 'bg-purple-600 border-r-4 border-purple-400' : '' }}" style="color: #FFFFFF !important;">
                         <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
