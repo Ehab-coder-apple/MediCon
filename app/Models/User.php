@@ -34,6 +34,7 @@ class User extends Authenticatable
         'password',
         'phone',
         'role_id',
+        'permissions',
         'branch_id',
         'tenant_id',
         'is_active',
@@ -75,6 +76,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'is_super_admin' => 'boolean',
+            'permissions' => 'array',
         ];
     }
 
@@ -147,6 +149,12 @@ class User extends Authenticatable
      */
     public function hasPermission(string $permission): bool
     {
+        // If the user has explicit permissions set, use them
+        if (is_array($this->permissions) && !empty($this->permissions)) {
+            return in_array($permission, $this->permissions, true);
+        }
+
+        // Otherwise, fall back to role-based permissions
         return $this->role && $this->role->hasPermission($permission);
     }
 

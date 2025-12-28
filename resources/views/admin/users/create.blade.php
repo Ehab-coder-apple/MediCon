@@ -123,7 +123,9 @@
                                                     {{ ucfirst(str_replace('_', ' ', $role->name)) }}
                                                 </div>
                                                 <div class="text-sm text-gray-500">
-                                                    @if($role->name === 'pharmacist')
+                                                    @if($role->name === 'admin')
+                                                        Full administrative access to manage users, inventory, sales, and system settings for this tenant.
+                                                    @elseif($role->name === 'pharmacist')
                                                         Can manage prescriptions, inventory, and sales. Full access to pharmacy operations.
                                                     @elseif($role->name === 'sales_staff')
                                                         Can process sales, manage customers, and view inventory. Limited administrative access.
@@ -135,6 +137,38 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Permissions (Optional) -->
+                        @if(!empty($allPermissions ?? []))
+                            <div class="bg-gray-50 p-6 rounded-lg">
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">Permissions (Optional)</h3>
+                                <p class="text-sm text-gray-600 mb-4">
+                                    By default, the system will assign permissions based on the selected role.
+                                    You can optionally fine-tune access by selecting specific permissions below.
+                                </p>
+
+                                @php
+                                    $selectedPermissions = old('permissions', []);
+                                @endphp
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    @foreach($allPermissions as $permission)
+                                        <label class="inline-flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                name="permissions[]"
+                                                value="{{ $permission }}"
+                                                {{ in_array($permission, $selectedPermissions ?? [], true) ? 'checked' : '' }}
+                                                class="text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                                            >
+                                            <span class="ml-2 text-sm text-gray-700">
+                                                {{ ucwords(str_replace('_', ' ', $permission)) }}
+                                            </span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
 
                         <!-- Password Setup -->
                         <div class="bg-gray-50 p-6 rounded-lg">

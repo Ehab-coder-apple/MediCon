@@ -226,7 +226,9 @@ class TenantRegistrationController extends Controller
             abort(403, 'Only administrators can create users.');
         }
 
-        $roles = Role::whereIn('name', ['pharmacist', 'sales_staff'])->get();
+        $roles = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
+            ->active()
+            ->get();
         $tenant = $user->tenant;
 
         // If user doesn't have a tenant, try to get the first active tenant
@@ -240,7 +242,28 @@ class TenantRegistrationController extends Controller
             abort(403, 'No active tenant found. Please contact your administrator.');
         }
 
-        return view('admin.users.create', compact('roles', 'tenant'));
+        // Collect available permissions from all relevant roles
+        $allPermissions = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
+            ->active()
+            ->pluck('permissions')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        // Map role ID => default permissions (from DB or static defaults)
+        $rolePermissionsMap = $roles->mapWithKeys(function (Role $role) {
+            $permissions = $role->permissions;
+
+            if (!is_array($permissions) || empty($permissions)) {
+                $permissions = Role::getDefaultPermissions($role->name);
+            }
+
+            return [$role->id => $permissions];
+        })->toArray();
+
+        return view('admin.users.create', compact('roles', 'tenant', 'allPermissions', 'rolePermissionsMap'));
     }
 
     /**
@@ -261,6 +284,8 @@ class TenantRegistrationController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'phone' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
         ]);
 
         try {
@@ -275,9 +300,17 @@ class TenantRegistrationController extends Controller
             }
 
             // Verify role is allowed
-            $role = Role::find($request->role_id);
-            if (!in_array($role->name, ['pharmacist', 'sales_staff'])) {
+            $role = Role::findOrFail($request->role_id);
+            if (!in_array($role->name, [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF], true)) {
                 throw new \Exception('Invalid role selected.');
+            }
+
+            // Determine final permissions for this user
+            $permissions = $request->input('permissions');
+            if (is_array($permissions)) {
+                $permissions = array_values(array_unique($permissions));
+            } else {
+                $permissions = $role->permissions ?: Role::getDefaultPermissions($role->name);
             }
 
             // Create the user
@@ -288,6 +321,7 @@ class TenantRegistrationController extends Controller
                 'phone' => $request->phone,
                 'tenant_id' => $tenant->id,
                 'role_id' => $role->id,
+                'permissions' => $permissions,
                 'is_active' => true,
                 'email_verified_at' => now(),
                 'created_by' => $user->id,
@@ -330,10 +364,44 @@ class TenantRegistrationController extends Controller
             abort(403, 'You cannot edit users from other tenants.');
         }
 
-        $roles = Role::whereIn('name', ['pharmacist', 'sales_staff'])->get();
+        $roles = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
+            ->active()
+            ->get();
         $tenant = $isCurrentUserSuperAdmin || $isTargetUserSystemLevel ? $user->tenant : $currentUser->tenant;
 
-        return view('admin.users.edit', compact('user', 'roles', 'tenant'));
+        // Collect all available permissions from relevant roles
+        $allPermissions = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
+            ->active()
+            ->pluck('permissions')
+            ->flatten()
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $rolePermissionsMap = $roles->mapWithKeys(function (Role $role) {
+            $permissions = $role->permissions;
+
+            if (!is_array($permissions) || empty($permissions)) {
+                $permissions = Role::getDefaultPermissions($role->name);
+            }
+
+            return [$role->id => $permissions];
+        })->toArray();
+
+        // Determine current effective permissions for this user
+        $userPermissions = $user->permissions;
+
+        if (!is_array($userPermissions) || empty($userPermissions)) {
+            $userRole = $user->role;
+            if ($userRole) {
+                $userPermissions = $rolePermissionsMap[$userRole->id] ?? Role::getDefaultPermissions($userRole->name);
+            } else {
+                $userPermissions = [];
+            }
+        }
+
+        return view('admin.users.edit', compact('user', 'roles', 'tenant', 'allPermissions', 'rolePermissionsMap', 'userPermissions'));
     }
 
     /**
@@ -368,6 +436,8 @@ class TenantRegistrationController extends Controller
             'phone' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
             'password' => 'nullable|confirmed|min:8',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
         ]);
 
         try {
@@ -375,12 +445,27 @@ class TenantRegistrationController extends Controller
 
             $role = Role::findOrFail($request->role_id);
 
+            // Determine final permissions for this user
+            $permissions = $request->input('permissions');
+
+            if (is_array($permissions)) {
+                $permissions = array_values(array_unique($permissions));
+            } else {
+                // If no permissions were submitted, keep existing or fall back to role defaults
+                $permissions = $user->permissions;
+
+                if (!is_array($permissions) || empty($permissions)) {
+                    $permissions = $role->permissions ?: Role::getDefaultPermissions($role->name);
+                }
+            }
+
             // Update the user
             $user->update([
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
                 'role_id' => $role->id,
+                'permissions' => $permissions,
             ]);
 
             // Update password if provided
