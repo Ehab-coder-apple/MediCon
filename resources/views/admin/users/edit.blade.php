@@ -102,11 +102,13 @@
                                                 </div>
                                                 <div class="text-sm text-gray-500">
                                                     @if($role->name === 'admin')
-                                                        Full administrative access to manage users, inventory, sales, and system settings for this tenant.
+                                                        Full administrative access to manage users, inventory, sales, reports, AI, HR, marketing, and system settings for this tenant.
                                                     @elseif($role->name === 'pharmacist')
-                                                        Can manage prescriptions, inventory, and sales. Full access to pharmacy operations.
+                                                        Can manage prescriptions, inventory, and sales, and access AI tools. Full access to pharmacy operations.
                                                     @elseif($role->name === 'sales_staff')
-                                                        Can process sales, manage customers, and view inventory. Limited administrative access.
+                                                        Can process sales, manage customers, view inventory, and access selected AI/marketing tools. Limited administrative access.
+                                                    @elseif($role->name === 'worker')
+                                                        Operational worker with limited access focused on daily tasks such as viewing inventory and working within their assigned branch.
                                                     @endif
                                                 </div>
                                             </div>
@@ -127,10 +129,19 @@
 
                                 @php
                                     $selectedPermissions = old('permissions', $userPermissions ?? []);
+                                    $permissionLabels = [
+                                        'access_ai' => 'Access AI',
+                                        'access_hr' => 'Access HR',
+                                        'access_marketing' => 'Access Marketing',
+                                        'full_admin_access' => 'Full Admin Access',
+                                    ];
                                 @endphp
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     @foreach($allPermissions as $permission)
+                                        @php
+                                            $label = $permissionLabels[$permission] ?? ucwords(str_replace('_', ' ', $permission));
+                                        @endphp
                                         <label class="inline-flex items-center">
                                             <input
                                                 type="checkbox"
@@ -140,7 +151,7 @@
                                                 class="text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                                             >
                                             <span class="ml-2 text-sm text-gray-700">
-                                                {{ ucwords(str_replace('_', ' ', $permission)) }}
+                                                {{ $label }}
                                             </span>
                                         </label>
                                     @endforeach

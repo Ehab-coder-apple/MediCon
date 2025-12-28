@@ -226,7 +226,9 @@ class TenantRegistrationController extends Controller
             abort(403, 'Only administrators can create users.');
         }
 
-        $roles = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
+        $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+
+        $roles = Role::whereIn('name', $allowedRoleNames)
             ->active()
             ->get();
         $tenant = $user->tenant;
@@ -242,22 +244,39 @@ class TenantRegistrationController extends Controller
             abort(403, 'No active tenant found. Please contact your administrator.');
         }
 
-        // Collect available permissions from all relevant roles
-        $allPermissions = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
-            ->active()
-            ->pluck('permissions')
-            ->flatten()
+        // Collect available permissions from all relevant roles (DB + static defaults)
+        $allPermissions = $roles
+            ->flatMap(function (Role $role) {
+                $permissions = $role->permissions;
+
+                if (!is_array($permissions) || empty($permissions)) {
+                    $permissions = Role::getDefaultPermissions($role->name);
+                } else {
+                    // Merge stored permissions with updated defaults (e.g. new access_* permissions)
+                    $permissions = array_values(array_unique(array_merge(
+                        $permissions,
+                        Role::getDefaultPermissions($role->name)
+                    )));
+                }
+
+                return $permissions;
+            })
             ->filter()
             ->unique()
             ->values()
             ->all();
 
-        // Map role ID => default permissions (from DB or static defaults)
+        // Map role ID => effective permissions (DB + static defaults)
         $rolePermissionsMap = $roles->mapWithKeys(function (Role $role) {
             $permissions = $role->permissions;
 
             if (!is_array($permissions) || empty($permissions)) {
                 $permissions = Role::getDefaultPermissions($role->name);
+            } else {
+                $permissions = array_values(array_unique(array_merge(
+                    $permissions,
+                    Role::getDefaultPermissions($role->name)
+                )));
             }
 
             return [$role->id => $permissions];
@@ -301,16 +320,30 @@ class TenantRegistrationController extends Controller
 
             // Verify role is allowed
             $role = Role::findOrFail($request->role_id);
-            if (!in_array($role->name, [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF], true)) {
+            $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+
+            if (!in_array($role->name, $allowedRoleNames, true)) {
                 throw new \Exception('Invalid role selected.');
+            }
+
+            // Resolve role's effective permissions (DB + static defaults)
+            $rolePermissions = $role->permissions;
+            if (!is_array($rolePermissions) || empty($rolePermissions)) {
+                $rolePermissions = Role::getDefaultPermissions($role->name);
+            } else {
+                $rolePermissions = array_values(array_unique(array_merge(
+                    $rolePermissions,
+                    Role::getDefaultPermissions($role->name)
+                )));
             }
 
             // Determine final permissions for this user
             $permissions = $request->input('permissions');
             if (is_array($permissions)) {
+                // Custom per-user permissions override role defaults
                 $permissions = array_values(array_unique($permissions));
             } else {
-                $permissions = $role->permissions ?: Role::getDefaultPermissions($role->name);
+                $permissions = $rolePermissions;
             }
 
             // Create the user
@@ -364,16 +397,29 @@ class TenantRegistrationController extends Controller
             abort(403, 'You cannot edit users from other tenants.');
         }
 
-        $roles = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
+        $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+
+        $roles = Role::whereIn('name', $allowedRoleNames)
             ->active()
             ->get();
         $tenant = $isCurrentUserSuperAdmin || $isTargetUserSystemLevel ? $user->tenant : $currentUser->tenant;
 
-        // Collect all available permissions from relevant roles
-        $allPermissions = Role::whereIn('name', [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF])
-            ->active()
-            ->pluck('permissions')
-            ->flatten()
+        // Collect all available permissions from relevant roles (DB + static defaults)
+        $allPermissions = $roles
+            ->flatMap(function (Role $role) {
+                $permissions = $role->permissions;
+
+                if (!is_array($permissions) || empty($permissions)) {
+                    $permissions = Role::getDefaultPermissions($role->name);
+                } else {
+                    $permissions = array_values(array_unique(array_merge(
+                        $permissions,
+                        Role::getDefaultPermissions($role->name)
+                    )));
+                }
+
+                return $permissions;
+            })
             ->filter()
             ->unique()
             ->values()
@@ -384,6 +430,11 @@ class TenantRegistrationController extends Controller
 
             if (!is_array($permissions) || empty($permissions)) {
                 $permissions = Role::getDefaultPermissions($role->name);
+            } else {
+                $permissions = array_values(array_unique(array_merge(
+                    $permissions,
+                    Role::getDefaultPermissions($role->name)
+                )));
             }
 
             return [$role->id => $permissions];
@@ -445,17 +496,35 @@ class TenantRegistrationController extends Controller
 
             $role = Role::findOrFail($request->role_id);
 
+            // Ensure role is one of the allowed tenant roles
+            $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+            if (!in_array($role->name, $allowedRoleNames, true)) {
+                throw new \Exception('Invalid role selected.');
+            }
+
+            // Resolve role's effective permissions (DB + static defaults)
+            $rolePermissions = $role->permissions;
+            if (!is_array($rolePermissions) || empty($rolePermissions)) {
+                $rolePermissions = Role::getDefaultPermissions($role->name);
+            } else {
+                $rolePermissions = array_values(array_unique(array_merge(
+                    $rolePermissions,
+                    Role::getDefaultPermissions($role->name)
+                )));
+            }
+
             // Determine final permissions for this user
             $permissions = $request->input('permissions');
 
             if (is_array($permissions)) {
+                // Custom per-user permissions override role defaults
                 $permissions = array_values(array_unique($permissions));
             } else {
                 // If no permissions were submitted, keep existing or fall back to role defaults
                 $permissions = $user->permissions;
 
                 if (!is_array($permissions) || empty($permissions)) {
-                    $permissions = $role->permissions ?: Role::getDefaultPermissions($role->name);
+                    $permissions = $rolePermissions;
                 }
             }
 

@@ -37,9 +37,14 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        // Super admins can bypass all gate and policy checks
+        // Super admins (and users with full_admin_access) can bypass all gate and policy checks
         Gate::before(function (User $user, string $ability) {
             if ($user->isSuperAdmin()) {
+                return true;
+            }
+
+            // Tenant-level full admin access
+            if ($user->hasPermission('full_admin_access')) {
                 return true;
             }
         });
@@ -67,6 +72,23 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('manage-system', function (User $user) {
             return $user->hasPermission('manage_system');
+        });
+
+        // New feature-specific gates
+        Gate::define('access-ai', function (User $user) {
+            return $user->hasPermission('access_ai');
+        });
+
+        Gate::define('access-hr', function (User $user) {
+            return $user->hasPermission('access_hr');
+        });
+
+        Gate::define('access-marketing', function (User $user) {
+            return $user->hasPermission('access_marketing');
+        });
+
+        Gate::define('full-admin-access', function (User $user) {
+            return $user->hasPermission('full_admin_access');
         });
     }
 }
