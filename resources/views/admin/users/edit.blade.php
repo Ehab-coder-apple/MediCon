@@ -123,8 +123,8 @@
                             <div class="bg-gray-50 p-6 rounded-lg">
                                 <h3 class="text-lg font-medium text-gray-900 mb-2">Permissions (Optional)</h3>
                                 <p class="text-sm text-gray-600 mb-4">
-                                    Adjust the user's permissions if needed. If you leave this as-is, the user will keep their current permissions
-                                    (or the defaults for their selected role).
+                                    Adjust the user's permissions if needed. If you leave this as-is,
+                                    the user will keep whatever permissions are currently saved for them.
                                 </p>
 
                                 @php

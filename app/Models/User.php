@@ -149,12 +149,14 @@ class User extends Authenticatable
      */
     public function hasPermission(string $permission): bool
     {
-        // If the user has explicit permissions set, use them
-        if (is_array($this->permissions) && !empty($this->permissions)) {
+        // If the user has any explicit permissions array (including empty),
+        // use it as the single source of truth.
+        if (is_array($this->permissions)) {
             return in_array($permission, $this->permissions, true);
         }
 
-        // Otherwise, fall back to role-based permissions
+        // Otherwise, fall back to role-based permissions (legacy behaviour
+        // for older users that don't yet use per-user permissions).
         return $this->role && $this->role->hasPermission($permission);
     }
 

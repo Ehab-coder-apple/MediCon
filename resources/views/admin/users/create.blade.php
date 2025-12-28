@@ -145,8 +145,8 @@
                             <div class="bg-gray-50 p-6 rounded-lg">
                                 <h3 class="text-lg font-medium text-gray-900 mb-2">Permissions (Optional)</h3>
                                 <p class="text-sm text-gray-600 mb-4">
-                                    By default, the system will assign permissions based on the selected role.
-                                    You can optionally fine-tune access by selecting specific permissions below.
+                                    Select which permissions this user should have.
+                                    If you don't select any, the user will have no special access.
                                 </p>
 
                                 @php

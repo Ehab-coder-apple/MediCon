@@ -326,24 +326,15 @@ class TenantRegistrationController extends Controller
                 throw new \Exception('Invalid role selected.');
             }
 
-            // Resolve role's effective permissions (DB + static defaults)
-            $rolePermissions = $role->permissions;
-            if (!is_array($rolePermissions) || empty($rolePermissions)) {
-                $rolePermissions = Role::getDefaultPermissions($role->name);
-            } else {
-                $rolePermissions = array_values(array_unique(array_merge(
-                    $rolePermissions,
-                    Role::getDefaultPermissions($role->name)
-                )));
-            }
-
-            // Determine final permissions for this user
+            // Determine final permissions for this user.
+            // New users do NOT receive any automatic role-based permissions;
+            // the admin must explicitly select the access they should have.
             $permissions = $request->input('permissions');
             if (is_array($permissions)) {
-                // Custom per-user permissions override role defaults
                 $permissions = array_values(array_unique($permissions));
             } else {
-                $permissions = $rolePermissions;
+                // No checkboxes selected -> no explicit permissions
+                $permissions = [];
             }
 
             // Create the user
