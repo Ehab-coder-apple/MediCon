@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AccessCode;
+use App\Models\Branch;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Tenant;
@@ -244,6 +245,13 @@ class TenantRegistrationController extends Controller
             abort(403, 'No active tenant found. Please contact your administrator.');
         }
 
+        // Load available branches for this tenant so admin can assign users to a branch
+        $branches = Branch::query()
+            ->where('tenant_id', $tenant->id)
+            ->active()
+            ->orderBy('name')
+            ->get();
+
         // Collect available permissions from all relevant roles (DB + static defaults)
         $allPermissions = $roles
             ->flatMap(function (Role $role) {
@@ -282,7 +290,7 @@ class TenantRegistrationController extends Controller
             return [$role->id => $permissions];
         })->toArray();
 
-        return view('admin.users.create', compact('roles', 'tenant', 'allPermissions', 'rolePermissionsMap'));
+        return view('admin.users.create', compact('roles', 'tenant', 'branches', 'allPermissions', 'rolePermissionsMap'));
     }
 
     /**
@@ -305,6 +313,7 @@ class TenantRegistrationController extends Controller
             'role_id' => 'required|exists:roles,id',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string',
+            'branch_id' => 'nullable|exists:branches,id',
         ]);
 
         try {
@@ -324,6 +333,18 @@ class TenantRegistrationController extends Controller
 
             if (!in_array($role->name, $allowedRoleNames, true)) {
                 throw new \Exception('Invalid role selected.');
+            }
+
+            // If a branch is selected, ensure it belongs to this tenant
+            $branchId = $request->input('branch_id');
+            if ($branchId) {
+                $branch = Branch::where('id', $branchId)
+                    ->where('tenant_id', $tenant->id)
+                    ->first();
+
+                if (!$branch) {
+                    throw new \Exception('Invalid branch selected for this pharmacy.');
+                }
             }
 
             // Determine final permissions for this user.
@@ -346,6 +367,7 @@ class TenantRegistrationController extends Controller
                 'tenant_id' => $tenant->id,
                 'role_id' => $role->id,
                 'permissions' => $permissions,
+                'branch_id' => $branchId,
                 'is_active' => true,
                 'email_verified_at' => now(),
                 'created_by' => $user->id,
@@ -395,6 +417,16 @@ class TenantRegistrationController extends Controller
             ->get();
         $tenant = $isCurrentUserSuperAdmin || $isTargetUserSystemLevel ? $user->tenant : $currentUser->tenant;
 
+        // Load available branches for this tenant (if any) so admin can assign or change the user's branch
+        $branches = collect();
+        if ($tenant) {
+            $branches = Branch::query()
+                ->where('tenant_id', $tenant->id)
+                ->active()
+                ->orderBy('name')
+                ->get();
+        }
+
         // Collect all available permissions from relevant roles (DB + static defaults)
         $allPermissions = $roles
             ->flatMap(function (Role $role) {
@@ -443,7 +475,7 @@ class TenantRegistrationController extends Controller
             }
         }
 
-        return view('admin.users.edit', compact('user', 'roles', 'tenant', 'allPermissions', 'rolePermissionsMap', 'userPermissions'));
+        return view('admin.users.edit', compact('user', 'roles', 'tenant', 'branches', 'allPermissions', 'rolePermissionsMap', 'userPermissions'));
     }
 
     /**
@@ -480,6 +512,7 @@ class TenantRegistrationController extends Controller
             'password' => 'nullable|confirmed|min:8',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string',
+            'branch_id' => 'nullable|exists:branches,id',
         ]);
 
         try {
@@ -491,6 +524,22 @@ class TenantRegistrationController extends Controller
             $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
             if (!in_array($role->name, $allowedRoleNames, true)) {
                 throw new \Exception('Invalid role selected.');
+            }
+
+            // If a branch is selected, ensure it belongs to the same tenant as the user (when applicable)
+            $branchId = $request->input('branch_id');
+            if ($branchId) {
+                $tenantId = $user->tenant_id ?? $currentUser->tenant_id;
+
+                if ($tenantId) {
+                    $branch = Branch::where('id', $branchId)
+                        ->where('tenant_id', $tenantId)
+                        ->first();
+
+                    if (!$branch) {
+                        throw new \Exception('Invalid branch selected for this user.');
+                    }
+                }
             }
 
             // Resolve role's effective permissions (DB + static defaults)
@@ -526,6 +575,7 @@ class TenantRegistrationController extends Controller
                 'phone' => $request->phone,
                 'role_id' => $role->id,
                 'permissions' => $permissions,
+                'branch_id' => $branchId ?? $user->branch_id,
             ]);
 
             // Update password if provided

@@ -102,6 +102,34 @@
                                            class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500">
                                 </div>
                             </div>
+
+	                        @if(isset($branches) && $branches->count() > 0)
+	                            <!-- Branch Assignment -->
+	                            <div class="bg-gray-50 p-6 rounded-lg">
+	                                <h3 class="text-lg font-medium text-gray-900 mb-4">Branch Assignment (Optional)</h3>
+	
+	                                <div>
+	                                    <label for="branch_id" class="block text-sm font-medium text-gray-700 mb-2">
+	                                        Assign to Branch
+	                                    </label>
+	                                    <select
+	                                        name="branch_id"
+	                                        id="branch_id"
+	                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+	                                    >
+	                                        <option value="">-- No specific branch (all branches for this pharmacy) --</option>
+	                                        @foreach($branches as $branch)
+	                                            <option value="{{ $branch->id }}" {{ old('branch_id') == $branch->id ? 'selected' : '' }}>
+	                                                {{ $branch->name }}@if($branch->code) ({{ $branch->code }})@endif
+	                                            </option>
+	                                        @endforeach
+	                                    </select>
+	                                    <p class="mt-1 text-sm text-gray-500">
+	                                        If you select a branch, this user will primarily work in that location for attendance and branch-based access.
+	                                    </p>
+	                                </div>
+	                            </div>
+	                        @endif
                         </div>
 
                         <!-- Role Assignment -->

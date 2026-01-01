@@ -118,6 +118,34 @@
                             </div>
                         </div>
 
+	                        @if(isset($branches) && $branches->count() > 0)
+	                            <!-- Branch Assignment -->
+	                            <div class="bg-gray-50 p-6 rounded-lg">
+	                                <h3 class="text-lg font-medium text-gray-900 mb-4">Branch Assignment</h3>
+	
+	                                <div>
+	                                    <label for="branch_id" class="block text-sm font-medium text-gray-700 mb-2">
+	                                        Assign to Branch
+	                                    </label>
+	                                    <select
+	                                        name="branch_id"
+	                                        id="branch_id"
+	                                        class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500"
+	                                    >
+	                                        <option value="">-- No specific branch (tenant-wide access to branches) --</option>
+	                                        @foreach($branches as $branch)
+	                                            <option value="{{ $branch->id }}" {{ (string) old('branch_id', $user->branch_id) === (string) $branch->id ? 'selected' : '' }}>
+	                                                {{ $branch->name }}@if($branch->code) ({{ $branch->code }})@endif
+	                                            </option>
+	                                        @endforeach
+	                                    </select>
+	                                    <p class="mt-1 text-sm text-gray-500">
+	                                        This sets the user's primary branch. The mobile attendance app will prioritise this branch when offering branch selection.
+	                                    </p>
+	                                </div>
+	                            </div>
+	                        @endif
+
                         <!-- Permissions (Optional) -->
                         @if(!empty($allPermissions ?? []))
                             <div class="bg-gray-50 p-6 rounded-lg">
