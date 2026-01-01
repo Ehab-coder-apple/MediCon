@@ -38,10 +38,15 @@ class AttendanceApiController extends Controller
             $user = auth()->user();
             $branch = Branch::findOrFail($request->branch_id);
 
-            // Verify user belongs to this branch (check both legacy and many-to-many)
+            // Verify user belongs to this branch
+            // - Super admins can access all branches
+            // - Legacy single-branch assignment (branch_id)
+            // - Many-to-many assignment via branch_user pivot
+            // - Option A: Any user can access branches that belong to their tenant
             $userBelongsToBranch = $user->is_super_admin ||
                                    $user->branch_id === $branch->id ||
-                                   $user->branches()->where('branch_id', $branch->id)->exists();
+                                   $user->branches()->where('branch_id', $branch->id)->exists() ||
+                                   ($user->tenant_id && $branch->tenant_id === $user->tenant_id);
 
             if (!$userBelongsToBranch) {
                 return response()->json([
@@ -194,6 +199,15 @@ class AttendanceApiController extends Controller
             // If no branches in many-to-many, fall back to legacy single branch
             if ($branches->isEmpty() && $user->branch) {
                 $branches = collect([$user->branch]);
+            }
+
+            // Option A: If still no branches, fall back to all active branches for the user's tenant
+            if ($branches->isEmpty() && $user->tenant_id) {
+                $branches = Branch::query()
+                    ->where('tenant_id', $user->tenant_id)
+                    ->active()
+                    ->orderBy('name')
+                    ->get();
             }
 
             if ($branches->isEmpty()) {

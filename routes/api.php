@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ProductInformationController;
 use App\Http\Controllers\Api\OpenAIProductController;
 use App\Http\Controllers\Api\BarcodeScannerController;
 use App\Http\Controllers\Api\QuickSaleController;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -84,6 +85,15 @@ Route::post('/mobile/login', function (Request $request) {
     // If no branches in many-to-many, fall back to legacy single branch
     if ($branches->isEmpty() && $user->branch) {
         $branches = collect([$user->branch]);
+    }
+
+    // Option A: If still no branches, fall back to all active branches for the user's tenant
+    if ($branches->isEmpty() && $user->tenant_id) {
+        $branches = Branch::query()
+            ->where('tenant_id', $user->tenant_id)
+            ->active()
+            ->orderBy('name')
+            ->get();
     }
 
     return response()->json([
