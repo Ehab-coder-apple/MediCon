@@ -27,7 +27,7 @@ class AIDocumentController extends Controller
     {
         $request->validate([
             'document_type' => 'required|in:invoice,prescription',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:25600',
             'branch_id' => 'required|exists:branches,id',
         ]);
 
