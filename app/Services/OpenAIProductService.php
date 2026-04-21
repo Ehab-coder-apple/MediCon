@@ -7,12 +7,18 @@ use Illuminate\Support\Facades\Log;
 
 class OpenAIProductService
 {
-    private Client $client;
+    private ?Client $client = null;
 
-    public function __construct()
+    private function client(): Client
     {
-        $apiKey = config('services.openai.api_key') ?? env('OPENAI_API_KEY');
-        $this->client = \OpenAI::client($apiKey);
+        if ($this->client === null) {
+            $apiKey = config('services.openai.api_key') ?? env('OPENAI_API_KEY');
+            if (empty($apiKey)) {
+                throw new \RuntimeException('OPENAI_API_KEY is not configured.');
+            }
+            $this->client = \OpenAI::client($apiKey);
+        }
+        return $this->client;
     }
 
     /**
@@ -23,7 +29,7 @@ class OpenAIProductService
         try {
             $prompt = $this->buildProductInfoPrompt($productName);
 
-            $response = $this->client->chat()->create([
+            $response = $this->client()->chat()->create([
                 'model' => 'gpt-3.5-turbo',
                 'messages' => [
                     [
