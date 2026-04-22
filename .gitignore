@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# React Native mobile app lives in its own repository (github.com/Ehab-coder-apple/MediConeStaff)
+MediConAttendance/
+
+# Local-only artifacts
+cookies.txt

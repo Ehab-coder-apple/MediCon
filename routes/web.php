@@ -489,7 +489,7 @@ Route::get('/docs/{file}', function ($file) {
         abort(404, 'Documentation file not found');
     }
 
-    $filePath = base_path($allowedFiles[$file]);
+    $filePath = base_path('docs/admin/' . $allowedFiles[$file]);
 
     if (!file_exists($filePath)) {
         abort(404, 'File not found: ' . $filePath);

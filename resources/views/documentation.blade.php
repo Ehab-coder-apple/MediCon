@@ -251,16 +251,16 @@
         </header>
 
         <div class="nav-links">
-            <a href="http://127.0.0.1:8000/docs/start-here" class="@if($title === 'start-here') active @endif">Start Here</a>
-            <a href="http://127.0.0.1:8000/docs/admin-guide" class="@if($title === 'admin-guide') active @endif">Admin Guide</a>
-            <a href="http://127.0.0.1:8000/docs/quick-reference" class="@if($title === 'quick-reference') active @endif">Quick Reference</a>
-            <a href="http://127.0.0.1:8000/docs/troubleshooting" class="@if($title === 'troubleshooting') active @endif">Troubleshooting</a>
-            <a href="http://127.0.0.1:8000/docs/training" class="@if($title === 'training') active @endif">Training</a>
-            <a href="http://127.0.0.1:8000/docs/index" class="@if($title === 'index') active @endif">Index</a>
+            <a href="{{ route('docs.view', 'start-here') }}" class="@if($title === 'start-here') active @endif">Start Here</a>
+            <a href="{{ route('docs.view', 'admin-guide') }}" class="@if($title === 'admin-guide') active @endif">Admin Guide</a>
+            <a href="{{ route('docs.view', 'quick-reference') }}" class="@if($title === 'quick-reference') active @endif">Quick Reference</a>
+            <a href="{{ route('docs.view', 'troubleshooting') }}" class="@if($title === 'troubleshooting') active @endif">Troubleshooting</a>
+            <a href="{{ route('docs.view', 'training') }}" class="@if($title === 'training') active @endif">Training</a>
+            <a href="{{ route('docs.view', 'index') }}" class="@if($title === 'index') active @endif">Index</a>
         </div>
 
         <div class="content">
-            <a href="http://127.0.0.1:8000/admin/attendance" class="back-link">← Back to Attendance</a>
+            <a href="{{ route('admin.attendance.index') }}" class="back-link">← Back to Attendance</a>
             <button class="print-button" onclick="window.print()">🖨️ Print as PDF</button>
 
             <pre style="white-space: pre-wrap; word-wrap: break-word; font-family: inherit; background: transparent; border: none; padding: 0;">{{ $content }}</pre>
