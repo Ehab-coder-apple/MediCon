@@ -19,12 +19,6 @@
                     </svg>
                     Business Reports
                 </a>
-                <a href="{{ route('super-admin.access-codes.create') }}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0" clip-rule="evenodd"/>
-                    </svg>
-                    Generate Access Code
-                </a>
                 <a href="{{ route('super-admin.tenants.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                     Add New Tenant
                 </a>
@@ -130,31 +124,6 @@
                 <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                     <div class="p-6">
                         <div class="flex items-center mb-4">
-                            <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0" clip-rule="evenodd"/>
-                                    <path d="M5.5 7.5A1.5 1.5 0 017 6h6a1.5 1.5 0 011.5 1.5v1A1.5 1.5 0 0113 10H7a1.5 1.5 0 01-1.5-1.5v-1z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Access Codes</h3>
-                                <p class="text-sm text-gray-600">Generate tenant access codes</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <a href="{{ route('super-admin.access-codes.create') }}" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors">
-                                🔑 Generate New Code
-                            </a>
-                            <a href="{{ route('super-admin.access-codes.index') }}" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors">
-                                📋 Manage Access Codes
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center mb-4">
                             <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-4">
                                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
@@ -222,66 +191,6 @@
                             </a>
                             <a href="{{ route('super-admin.tenants.index') }}?filter=suspended" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
                                 🚫 Suspended Tenants
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quick Access Codes Section -->
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg mb-6">
-                <div class="p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Access Code Management</h3>
-                            <p class="text-sm text-gray-600">Generate and manage tenant access codes</p>
-                        </div>
-                        <div class="flex space-x-3">
-                            <a href="{{ route('super-admin.access-codes.create') }}" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg flex items-center transition-colors">
-                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/>
-                                </svg>
-                                Generate New Code
-                            </a>
-                            <a href="{{ route('super-admin.access-codes.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
-                                View All Codes
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Access Code Types -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                            <div class="flex items-center mb-2">
-                                <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center mr-3">
-                                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-purple-900">Admin Setup Codes</h4>
-                                    <p class="text-sm text-purple-700">For first-time tenant administrators</p>
-                                </div>
-                            </div>
-                            <a href="{{ route('super-admin.access-codes.create') }}?type=admin_setup" class="text-purple-600 hover:text-purple-800 text-sm font-medium">
-                                Generate Admin Setup Code →
-                            </a>
-                        </div>
-
-                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                            <div class="flex items-center mb-2">
-                                <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-3">
-                                    <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h4 class="font-medium text-blue-900">User Registration Codes</h4>
-                                    <p class="text-sm text-blue-700">For additional staff members</p>
-                                </div>
-                            </div>
-                            <a href="{{ route('super-admin.access-codes.create') }}?type=user_registration" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                Generate User Registration Code →
                             </a>
                         </div>
                     </div>
