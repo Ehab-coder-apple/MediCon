@@ -251,9 +251,14 @@ class SuperAdminReportsController extends Controller
      */
     private function getMonthlyTrends(): array
     {
+        $driver = DB::connection()->getDriverName();
+        $monthExpr = $driver === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : "DATE_FORMAT(created_at, '%Y-%m')";
+
         return DB::table('sales')
             ->select(
-                DB::raw('strftime("%Y-%m", created_at) as month'),
+                DB::raw("{$monthExpr} as month"),
                 DB::raw('COUNT(*) as sales_count'),
                 DB::raw('SUM(total_price) as total_revenue')
             )
