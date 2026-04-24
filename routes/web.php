@@ -182,6 +182,7 @@ Route::middleware([
         Route::post('/bulk/send', [App\Http\Controllers\WhatsAppController::class, 'sendBulk'])->name('bulk.send');
         Route::get('/history', [App\Http\Controllers\WhatsAppController::class, 'history'])->name('history');
         Route::get('/template/{template}', [App\Http\Controllers\WhatsAppController::class, 'getTemplate'])->name('template');
+        Route::post('/messages/{message}/mark-sent', [App\Http\Controllers\WhatsAppController::class, 'markAsSent'])->name('mark-sent');
     });
 
     // Invoice management routes (available to all authenticated users)

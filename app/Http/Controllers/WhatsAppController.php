@@ -411,6 +411,27 @@ class WhatsAppController extends Controller
     }
 
     /**
+     * Mark a pending Business Free message as sent
+     */
+    public function markAsSent(WhatsAppMessage $message): RedirectResponse
+    {
+        if ($message->tenant_id !== auth()->user()->tenant_id) {
+            abort(403);
+        }
+
+        if ($message->status !== WhatsAppMessage::STATUS_PENDING) {
+            return back()->withErrors(['error' => 'Only pending messages can be marked as sent.']);
+        }
+
+        $message->update([
+            'status' => WhatsAppMessage::STATUS_SENT,
+            'sent_at' => now(),
+        ]);
+
+        return back()->with('success', 'Message marked as sent.');
+    }
+
+    /**
      * Get template details via AJAX
      */
     public function getTemplate(WhatsAppTemplate $template): JsonResponse

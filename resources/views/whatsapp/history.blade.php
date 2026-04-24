@@ -83,6 +83,9 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Date
                                     </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -164,6 +167,27 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <div>{{ $message->created_at->format('M j, Y') }}</div>
                                             <div class="text-xs">{{ $message->created_at->format('g:i A') }}</div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            @if($message->status === 'pending' && data_get($message->metadata, 'mode') === 'business_free')
+                                                <div class="flex items-center space-x-2">
+                                                    @if(data_get($message->metadata, 'whatsapp_link'))
+                                                        <a href="{{ data_get($message->metadata, 'whatsapp_link') }}" target="_blank" rel="noopener"
+                                                           class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-green-500 hover:bg-green-600 text-white">
+                                                            <i class="fab fa-whatsapp mr-1"></i> Open
+                                                        </a>
+                                                    @endif
+                                                    <form method="POST" action="{{ route('whatsapp.mark-sent', $message) }}" class="inline">
+                                                        @csrf
+                                                        <button type="submit"
+                                                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white">
+                                                            <i class="fas fa-check mr-1"></i> Mark as Sent
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            @else
+                                                <span class="text-xs text-gray-400">—</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

@@ -229,6 +229,23 @@
                                         <div class="text-right">
                                             <p class="text-sm text-gray-500">{{ $message->created_at->diffForHumans() }}</p>
                                             <p class="text-xs text-gray-400 mt-1">{{ ucfirst($message->status) }}</p>
+                                            @if($message->status === 'pending' && data_get($message->metadata, 'mode') === 'business_free')
+                                                <div class="mt-2 flex items-center justify-end space-x-2">
+                                                    @if(data_get($message->metadata, 'whatsapp_link'))
+                                                        <a href="{{ data_get($message->metadata, 'whatsapp_link') }}" target="_blank" rel="noopener"
+                                                           class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-green-500 hover:bg-green-600 text-white">
+                                                            <i class="fab fa-whatsapp mr-1"></i> Open
+                                                        </a>
+                                                    @endif
+                                                    <form method="POST" action="{{ route('whatsapp.mark-sent', $message) }}" class="inline">
+                                                        @csrf
+                                                        <button type="submit"
+                                                                class="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded bg-blue-500 hover:bg-blue-600 text-white">
+                                                            <i class="fas fa-check mr-1"></i> Mark as Sent
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
