@@ -25,6 +25,43 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            <!-- Business Free: WhatsApp Link Ready -->
+            @if(session('whatsapp_link'))
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6" id="whatsappLinkBanner">
+                    <div class="flex items-start justify-between">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fab fa-whatsapp text-green-500 text-2xl"></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-green-800">
+                                    WhatsApp link ready
+                                    @if(session('whatsapp_recipient_name'))
+                                        for {{ session('whatsapp_recipient_name') }}
+                                    @endif
+                                </h3>
+                                <p class="mt-1 text-sm text-green-700">
+                                    Click the button to open WhatsApp. If it doesn't open automatically, tap the button manually.
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ session('whatsapp_link') }}" target="_blank" rel="noopener"
+                           id="whatsappLinkBtn"
+                           class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors flex items-center whitespace-nowrap">
+                            <i class="fab fa-whatsapp mr-2"></i>
+                            Open WhatsApp
+                        </a>
+                    </div>
+                </div>
+                @push('scripts')
+                <script>
+                    window.addEventListener('DOMContentLoaded', function () {
+                        try { window.open(@json(session('whatsapp_link')), '_blank', 'noopener'); } catch (e) {}
+                    });
+                </script>
+                @endpush
+            @endif
+
             <!-- Test Mode Notice -->
             @if(config('whatsapp.test_mode', true))
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">

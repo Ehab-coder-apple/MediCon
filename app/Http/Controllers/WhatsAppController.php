@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\WhatsAppCredential;
 use App\Models\WhatsAppMessage;
 use App\Models\WhatsAppTemplate;
 use App\Services\WhatsAppService;
@@ -169,24 +170,49 @@ class WhatsAppController extends Controller
                 'status' => WhatsAppMessage::STATUS_PENDING,
             ];
 
+            $template = null;
+            $parameters = [];
+
             if ($request->message_type === 'text') {
                 $messageData['message_content'] = $request->message_content;
+            } else {
+                $template = WhatsAppTemplate::findOrFail($request->template_id);
+                $parameters = $request->template_parameters ?? [];
+                $messageData['template_id'] = $template->id;
+                $messageData['template_parameters'] = $parameters;
+                $messageData['message_content'] = $template->replaceParameters($template->body_text, $parameters);
+            }
 
+            // Business Free mode: generate wa.me link for manual sending
+            $credential = WhatsAppCredential::forTenant($tenantId);
+            if ($credential && $credential->isBusinessFreeMode()) {
+                $link = $credential->getWhatsAppLink($customer->phone, $messageData['message_content']);
+
+                $messageData['metadata'] = [
+                    'mode' => 'business_free',
+                    'whatsapp_link' => $link,
+                    'manual_send_required' => true,
+                ];
+
+                WhatsAppMessage::create($messageData);
+
+                if ($template) {
+                    $template->incrementUsage();
+                }
+
+                return redirect()->route('whatsapp.index')
+                    ->with('success', 'WhatsApp link ready for ' . $customer->name . '. Click the button below to open WhatsApp.')
+                    ->with('whatsapp_link', $link)
+                    ->with('whatsapp_recipient_name', $customer->name);
+            }
+
+            if ($request->message_type === 'text') {
                 // Send text message
                 $result = $this->whatsAppService->sendTextMessage(
                     $customer->phone,
                     $request->message_content
                 );
-
             } else {
-                // Template message
-                $template = WhatsAppTemplate::findOrFail($request->template_id);
-                $parameters = $request->template_parameters ?? [];
-
-                $messageData['template_id'] = $template->id;
-                $messageData['template_parameters'] = $parameters;
-                $messageData['message_content'] = $template->replaceParameters($template->body_text, $parameters);
-
                 // Send template message
                 $result = $this->whatsAppService->sendTemplateMessage(
                     $customer->phone,
