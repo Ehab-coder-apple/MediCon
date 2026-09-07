@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between px-6 py-4">
             <h2 class="font-semibold text-xl text-slate-800 leading-tight">
                 {{ __('Dashboard') }}
             </h2>
@@ -17,7 +17,7 @@
             {{-- Today's Sales --}}
             <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-5">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-slate-500">Today's Sales</p>
+                    <p class="text-sm font-medium text-slate-600">Today's Sales</p>
                     <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-emerald-50 text-emerald-600">
                         <i class="fa-solid fa-cash-register"></i>
                     </span>
@@ -28,7 +28,7 @@
             {{-- Today's Profit --}}
             <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-5">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-slate-500">Today's Profit</p>
+                    <p class="text-sm font-medium text-slate-600">Today's Profit</p>
                     <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-emerald-50 text-emerald-600">
                         <i class="fa-solid fa-arrow-trend-up"></i>
                     </span>
@@ -39,7 +39,7 @@
             {{-- Monthly Sales --}}
             <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-5">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-slate-500">Monthly Sales</p>
+                    <p class="text-sm font-medium text-slate-600">Monthly Sales</p>
                     <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-100 text-slate-700">
                         <i class="fa-solid fa-chart-line"></i>
                     </span>
@@ -51,7 +51,7 @@
             {{-- Inventory Value --}}
             <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-5">
                 <div class="flex items-center justify-between">
-                    <p class="text-sm font-medium text-slate-500">Inventory Value</p>
+                    <p class="text-sm font-medium text-slate-600">Inventory Value</p>
                     <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-100 text-slate-700">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </span>
@@ -136,7 +136,7 @@
                 <div class="p-5">
                     <div class="relative h-72">
                         <canvas id="salesOverviewChart"></canvas>
-                        <div id="salesOverviewEmpty" class="absolute inset-0 hidden flex-col items-center justify-center text-slate-400">
+                        <div id="salesOverviewEmpty" class="absolute inset-0 hidden flex-col items-center justify-center text-center text-slate-400">
                             <i class="fa-solid fa-chart-column text-3xl mb-2"></i>
                             <p class="text-sm">No sales data for this period</p>
                         </div>
@@ -149,69 +149,35 @@
                 <div class="px-5 py-3 border-b border-slate-200">
                     <h3 class="text-sm font-semibold text-slate-700">Quick Actions</h3>
                 </div>
-                <div class="p-5 grid grid-cols-1 gap-3">
-                    <a href="{{ route('invoices.create') }}" class="flex items-center gap-3 px-4 py-3 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-medium transition-colors">
+                <div class="p-5 grid grid-cols-1 gap-2.5">
+                    <a href="{{ route('invoices.create') }}" class="flex items-center gap-3 h-10 px-4 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-colors">
                         <i class="fa-solid fa-plus w-4 text-center"></i> New Sale
                     </a>
-                    <a href="{{ route('admin.purchases.create') }}" class="flex items-center gap-3 px-4 py-3 rounded-md bg-slate-800 hover:bg-slate-900 text-white font-medium transition-colors">
+                    <a href="{{ route('admin.purchases.create') }}" class="flex items-center gap-3 h-10 px-4 rounded-md bg-slate-800 hover:bg-slate-900 text-white text-sm font-medium transition-colors">
                         <i class="fa-solid fa-cart-plus w-4 text-center"></i> New Purchase
                     </a>
-                    <a href="{{ route('admin.products.create') }}" class="flex items-center gap-3 px-4 py-3 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium transition-colors">
+                    <a href="{{ route('admin.products.create') }}" class="flex items-center gap-3 h-10 px-4 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors">
                         <i class="fa-solid fa-box w-4 text-center text-slate-500"></i> Add Product
                     </a>
-                    <a href="{{ route('admin.stock-transfers.create') }}" class="flex items-center gap-3 px-4 py-3 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium transition-colors">
+                    <a href="{{ route('admin.stock-transfers.create') }}" class="flex items-center gap-3 h-10 px-4 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors">
                         <i class="fa-solid fa-right-left w-4 text-center text-slate-500"></i> Stock Transfer
                     </a>
-                    <a href="{{ route('admin.reports.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium transition-colors">
+                    <a href="{{ route('admin.reports.index') }}" class="flex items-center gap-3 h-10 px-4 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-medium transition-colors">
                         <i class="fa-solid fa-chart-column w-4 text-center text-slate-500"></i> Reports
                     </a>
                 </div>
             </div>
         </div>
 
-        {{-- Inventory Health + Top Selling Products --}}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {{-- Inventory Health --}}
-            <div class="bg-white border border-slate-200 rounded-lg shadow-sm">
-                <div class="px-5 py-3 border-b border-slate-200">
-                    <h3 class="text-sm font-semibold text-slate-700">Inventory Health</h3>
-                </div>
-                <div class="p-5">
-                    @if ($inventoryHealth['total'] > 0)
-                        <div class="relative h-44">
-                            <canvas id="inventoryHealthChart"></canvas>
-                        </div>
-                        <div class="mt-4 space-y-2 text-sm">
-                            <div class="flex items-center justify-between">
-                                <span class="flex items-center text-slate-600"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500 mr-2"></span>Healthy</span>
-                                <span class="font-semibold text-slate-900">{{ number_format($inventoryHealth['healthy']) }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="flex items-center text-slate-600"><span class="h-2.5 w-2.5 rounded-full bg-amber-500 mr-2"></span>Low Stock</span>
-                                <span class="font-semibold text-slate-900">{{ number_format($inventoryHealth['low']) }}</span>
-                            </div>
-                            <div class="flex items-center justify-between">
-                                <span class="flex items-center text-slate-600"><span class="h-2.5 w-2.5 rounded-full bg-red-500 mr-2"></span>Out of Stock</span>
-                                <span class="font-semibold text-slate-900">{{ number_format($inventoryHealth['out']) }}</span>
-                            </div>
-                        </div>
-                    @else
-                        <div class="flex flex-col items-center justify-center h-44 text-slate-400">
-                            <i class="fa-solid fa-boxes-stacked text-3xl mb-2"></i>
-                            <p class="text-sm">No products yet</p>
-                        </div>
-                    @endif
-                </div>
+        {{-- Top Selling Products --}}
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+                <h3 class="text-sm font-semibold text-slate-700">Top Selling Products</h3>
+                <span class="text-xs text-slate-400">{{ now()->format('F Y') }}</span>
             </div>
-
-            {{-- Top Selling Products --}}
-            <div class="lg:col-span-2 bg-white border border-slate-200 rounded-lg shadow-sm">
-                <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
-                    <h3 class="text-sm font-semibold text-slate-700">Top Selling Products</h3>
-                    <span class="text-xs text-slate-400">{{ now()->format('F Y') }}</span>
-                </div>
-                <div class="p-2">
-                    @if ($topProducts->isNotEmpty())
+            <div class="p-2">
+                @if ($topProducts->isNotEmpty())
+                    <div class="overflow-x-auto">
                         <table class="min-w-full text-sm">
                             <thead>
                                 <tr class="text-left text-xs uppercase tracking-wide text-slate-400">
@@ -235,13 +201,13 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    @else
-                        <div class="flex flex-col items-center justify-center h-44 text-slate-400">
-                            <i class="fa-solid fa-ranking-star text-3xl mb-2"></i>
-                            <p class="text-sm">No sales recorded this month</p>
-                        </div>
-                    @endif
-                </div>
+                    </div>
+                @else
+                    <div class="flex flex-col items-center justify-center h-44 text-slate-400">
+                        <i class="fa-solid fa-ranking-star text-3xl mb-2"></i>
+                        <p class="text-sm">No sales recorded this month</p>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -400,29 +366,6 @@
 
             setActiveTab('month');
             renderChart('month');
-
-            @if ($inventoryHealth['total'] > 0)
-            const invCtx = document.getElementById('inventoryHealthChart');
-            if (invCtx) {
-                new Chart(invCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Healthy', 'Low Stock', 'Out of Stock'],
-                        datasets: [{
-                            data: [{{ $inventoryHealth['healthy'] }}, {{ $inventoryHealth['low'] }}, {{ $inventoryHealth['out'] }}],
-                            backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-                            borderWidth: 0,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        cutout: '65%',
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-            @endif
         })();
     </script>
     @endpush
