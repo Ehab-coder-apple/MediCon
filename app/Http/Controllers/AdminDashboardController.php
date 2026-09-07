@@ -6,32 +6,168 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Batch;
 use App\Models\Product;
+use App\Models\Sale;
+use App\Models\Invoice;
+use App\Models\Purchase;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
 class AdminDashboardController extends Controller
 {
     public function index()
     {
-        $totalUsers = User::active()->count();
-        $adminUsers = User::withRole(Role::ADMIN)->count();
-        $pharmacistUsers = User::withRole(Role::PHARMACIST)->count();
-        $salesStaffUsers = User::withRole(Role::SALES_STAFF)->count();
+        $currencySymbol = SystemSetting::get('currency_symbol', '$');
 
-        // Inventory metrics
-        $totalExpiredProducts = $this->getTotalExpiredProducts();
-        $totalNearlyExpiredProducts = $this->getTotalNearlyExpiredProducts();
+        // Primary business KPIs (reusing existing reporting rules)
+        $todaysSales = (float) Sale::where('status', 'completed')
+            ->whereDate('sale_date', today())
+            ->sum('total_price');
+
+        $todaysProfit = $this->getProfitForRange(today()->startOfDay(), today()->endOfDay());
+
+        $monthlySales = (float) Sale::where('status', 'completed')
+            ->whereBetween('sale_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('total_price');
+
+        $inventoryValue = (float) Batch::where('quantity', '>', 0)
+            ->selectRaw('COALESCE(SUM(cost_price * quantity), 0) as value')
+            ->value('value');
+
+        // Inventory & finance alerts
         $lowStockProducts = $this->getLowStockProductsCount();
         $outOfStockProducts = $this->getOutOfStockProductsCount();
+        $expiringSoonProducts = $this->getTotalNearlyExpiredProducts();
+        $receivables = (float) Invoice::where('balance_due', '>', 0)->sum('balance_due');
+        $payables = (float) Purchase::where('payment_status', '!=', 'paid')->sum('balance_due');
+
+        // Inventory health breakdown (non-overlapping counts)
+        $totalProducts = Product::where('is_active', true)->count();
+        $healthyProducts = max($totalProducts - $lowStockProducts, 0);
+        $lowOnlyProducts = max($lowStockProducts - $outOfStockProducts, 0);
+        $inventoryHealth = [
+            'total' => $totalProducts,
+            'healthy' => $healthyProducts,
+            'low' => $lowOnlyProducts,
+            'out' => $outOfStockProducts,
+        ];
+
+        // Sales overview series (Today / 7 Days / 30 Days / This Year)
+        $salesChart = $this->buildSalesSeries();
+
+        // Top selling products for the current month
+        $topProducts = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.sale_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->select('products.name', 'products.code', DB::raw('SUM(sale_items.quantity) as total_sold'), DB::raw('SUM(sale_items.total_price) as total_revenue'))
+            ->groupBy('products.id', 'products.name', 'products.code')
+            ->orderBy('total_sold', 'desc')
+            ->limit(5)
+            ->get();
+
+        // Recent completed sales
+        $recentSales = Sale::with('customer')
+            ->where('status', 'completed')
+            ->orderBy('sale_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit(6)
+            ->get();
 
         return view('admin.dashboard', compact(
-            'totalUsers',
-            'adminUsers',
-            'pharmacistUsers',
-            'salesStaffUsers',
-            'totalExpiredProducts',
-            'totalNearlyExpiredProducts',
+            'currencySymbol',
+            'todaysSales',
+            'todaysProfit',
+            'monthlySales',
+            'inventoryValue',
             'lowStockProducts',
-            'outOfStockProducts'
+            'outOfStockProducts',
+            'expiringSoonProducts',
+            'receivables',
+            'payables',
+            'inventoryHealth',
+            'salesChart',
+            'topProducts',
+            'recentSales'
         ));
+    }
+
+    /**
+     * Calculate gross profit on goods sold within a date range.
+     * Uses the same rule as ProfitAnalysisReportExport: (unit_price - product cost_price) * quantity
+     * over completed sales.
+     */
+    private function getProfitForRange($start, $end): float
+    {
+        return (float) DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.sale_date', [$start, $end])
+            ->selectRaw('COALESCE(SUM((sale_items.unit_price - products.cost_price) * sale_items.quantity), 0) as profit')
+            ->value('profit');
+    }
+
+    /**
+     * Build the Sales Overview series for the four dashboard filters.
+     * Buckets are computed in PHP to stay database-agnostic.
+     */
+    private function buildSalesSeries(): array
+    {
+        $yearSales = Sale::where('status', 'completed')
+            ->whereBetween('sale_date', [now()->startOfYear(), now()->endOfYear()])
+            ->get(['sale_date', 'created_at', 'total_price']);
+
+        // Today - hourly buckets (by created_at time of sale)
+        $todayLabels = [];
+        $todayData = array_fill(0, 24, 0.0);
+        for ($h = 0; $h < 24; $h++) {
+            $todayLabels[] = sprintf('%02d:00', $h);
+        }
+        foreach ($yearSales as $sale) {
+            if ($sale->created_at && $sale->created_at->isToday()) {
+                $todayData[(int) $sale->created_at->format('G')] += (float) $sale->total_price;
+            }
+        }
+
+        // 7 days and 30 days - daily buckets by sale_date
+        $sevenLabels = $sevenData = $thirtyLabels = $thirtyData = [];
+        $dailyTotals = [];
+        foreach ($yearSales as $sale) {
+            $key = $sale->sale_date?->format('Y-m-d');
+            if ($key) {
+                $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (float) $sale->total_price;
+            }
+        }
+        foreach ([7 => ['sevenLabels', 'sevenData'], 30 => ['thirtyLabels', 'thirtyData']] as $days => $vars) {
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $date = now()->subDays($i);
+                $key = $date->format('Y-m-d');
+                ${$vars[0]}[] = $date->format('M j');
+                ${$vars[1]}[] = round($dailyTotals[$key] ?? 0, 2);
+            }
+        }
+
+        // This year - monthly buckets by sale_date
+        $yearLabels = $yearData = [];
+        $monthlyTotals = array_fill(1, 12, 0.0);
+        foreach ($yearSales as $sale) {
+            if ($sale->sale_date) {
+                $monthlyTotals[(int) $sale->sale_date->format('n')] += (float) $sale->total_price;
+            }
+        }
+        for ($m = 1; $m <= 12; $m++) {
+            $yearLabels[] = now()->startOfYear()->addMonths($m - 1)->format('M');
+            $yearData[] = round($monthlyTotals[$m], 2);
+        }
+
+        return [
+            'today' => ['labels' => $todayLabels, 'data' => array_map(fn ($v) => round($v, 2), $todayData)],
+            'week' => ['labels' => $sevenLabels, 'data' => $sevenData],
+            'month' => ['labels' => $thirtyLabels, 'data' => $thirtyData],
+            'year' => ['labels' => $yearLabels, 'data' => $yearData],
+        ];
     }
 
     /**
