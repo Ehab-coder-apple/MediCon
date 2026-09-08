@@ -18,6 +18,7 @@ use App\Http\Controllers\PurchaseReturnController;
 use App\Http\Controllers\InventoryReturnController;
 use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\ReportsController;
+use App\Http\Controllers\ComplianceReportsController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\SalesStaffDashboardController;
@@ -337,6 +338,13 @@ Route::middleware([
         Route::get('/reports/export/sales-detailed-excel', [ReportsController::class, 'exportDetailedSalesExcel'])->name('reports.export.sales.detailed.excel');
         Route::get('/reports/export/sales-comprehensive-excel', [ReportsController::class, 'exportComprehensiveSalesExcel'])->name('reports.export.sales.comprehensive.excel');
         Route::get('/reports/export/profit-analysis-excel', [ReportsController::class, 'exportProfitAnalysisExcel'])->name('reports.export.profit.analysis.excel');
+
+        // Compliance & regulatory reports (isolated, read-only)
+        Route::get('/reports/narcotics-log', [ComplianceReportsController::class, 'narcoticsLog'])->name('reports.narcotics');
+        Route::get('/reports/doh-export', [ComplianceReportsController::class, 'dohExport'])->name('reports.doh-export');
+        Route::get('/reports/wastage-log', [ComplianceReportsController::class, 'wastageLog'])->name('reports.wastage');
+        Route::get('/reports/insurance-claims', [ComplianceReportsController::class, 'insuranceClaims'])->name('reports.insurance-claims');
+        Route::get('/reports/insurance-rejections', [ComplianceReportsController::class, 'insuranceRejections'])->name('reports.insurance-rejections');
 
         // System Settings routes
         Route::get('/settings', [SystemSettingsController::class, 'index'])->name('settings.index');

@@ -100,27 +100,18 @@
                     <h3 class="text-sm font-semibold text-slate-800">Compliance &amp; Regulatory</h3>
                 </div>
                 <div class="p-2 space-y-0.5">
-                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-prescription-bottle-medical w-4 text-center text-red-400"></i>
-                            <span>Controlled Substances / Narcotics Log</span>
-                        </span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-file-export w-4 text-center text-slate-400"></i>
-                            <span>DOH Compliance Export</span>
-                        </span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-trash-can w-4 text-center text-amber-400"></i>
-                            <span>Inventory Wastage &amp; Disposal Log</span>
-                        </span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
-                    </div>
+                    <a href="{{ route('admin.reports.narcotics') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-prescription-bottle-medical w-4 text-center text-red-500"></i>
+                        <span>Controlled Substances / Narcotics Log</span>
+                    </a>
+                    <a href="{{ route('admin.reports.doh-export') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-file-export w-4 text-center text-slate-400"></i>
+                        <span>DOH Compliance Export</span>
+                    </a>
+                    <a href="{{ route('admin.reports.wastage') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-trash-can w-4 text-center text-amber-500"></i>
+                        <span>Inventory Wastage &amp; Disposal Log</span>
+                    </a>
                 </div>
             </div>
 
@@ -145,20 +136,14 @@
                         <i class="fa-solid fa-clock-rotate-left w-4 text-center text-slate-400"></i>
                         <span>Purchase History</span>
                     </a>
-                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-file-medical w-4 text-center text-slate-400"></i>
-                            <span>Insurance Claims Settlement</span>
-                        </span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
-                    </div>
-                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
-                        <span class="flex items-center gap-3">
-                            <i class="fa-solid fa-file-circle-xmark w-4 text-center text-slate-400"></i>
-                            <span>Insurance Rejection Log</span>
-                        </span>
-                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
-                    </div>
+                    <a href="{{ route('admin.reports.insurance-claims') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-file-medical w-4 text-center text-slate-400"></i>
+                        <span>Insurance Claims Settlement</span>
+                    </a>
+                    <a href="{{ route('admin.reports.insurance-rejections') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-file-circle-xmark w-4 text-center text-slate-400"></i>
+                        <span>Insurance Rejection Log</span>
+                    </a>
                 </div>
             </div>
 
