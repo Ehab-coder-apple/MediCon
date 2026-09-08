@@ -10,10 +10,10 @@
         </div>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="w-full">
 
         {{-- ERP reporting matrix --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
 
             {{-- Sales & Financial Analysis --}}
             <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
