@@ -1,268 +1,167 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('View Reports') }}
+        <div class="flex items-center justify-between px-6 py-4">
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">
+                {{ __('Reports') }}
             </h2>
-            <div class="text-sm text-gray-600">
-                {{ now()->format('F j, Y') }}
-            </div>
+            <span class="hidden sm:inline-flex items-center text-sm text-slate-500">
+                <i class="fa-regular fa-calendar mr-2"></i>{{ now()->format('l, M j, Y') }}
+            </span>
         </div>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <!-- Summary Statistics -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-500">Total Sales</div>
-                            <div class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_sales']) }}</div>
-                        </div>
-                    </div>
-                </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-500">Total Revenue</div>
-                            <div class="text-2xl font-bold text-gray-900">${{ number_format($stats['total_revenue'], 2) }}</div>
-                        </div>
-                    </div>
-                </div>
+        {{-- ERP reporting matrix --}}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
 
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-500">Active Products</div>
-                            <div class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_products']) }}</div>
-                        </div>
-                    </div>
+            {{-- Sales & Financial Analysis --}}
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
+                    <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-emerald-50 text-emerald-600 shrink-0">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </span>
+                    <h3 class="text-sm font-semibold text-slate-800">Sales &amp; Financial Analysis</h3>
                 </div>
-
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-500">Total Customers</div>
-                            <div class="text-2xl font-bold text-gray-900">{{ number_format($stats['total_customers']) }}</div>
-                        </div>
-                    </div>
+                <div class="p-2 space-y-0.5">
+                    <a href="{{ route('admin.reports.sales') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-file-invoice-dollar w-4 text-center text-slate-400"></i>
+                        <span>Sales Summary</span>
+                    </a>
+                    <a href="{{ route('admin.reports.sales') }}?period=daily" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-calendar-day w-4 text-center text-slate-400"></i>
+                        <span>Daily Sales</span>
+                    </a>
+                    <a href="{{ route('admin.reports.sales') }}?period=monthly" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-calendar-days w-4 text-center text-slate-400"></i>
+                        <span>Monthly Sales</span>
+                    </a>
+                    <a href="{{ route('admin.reports.financial') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-sack-dollar w-4 text-center text-slate-400"></i>
+                        <span>Revenue Report</span>
+                    </a>
+                    <a href="{{ route('admin.reports.financial') }}?view=profit" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-arrow-trend-up w-4 text-center text-slate-400"></i>
+                        <span>Profit Analysis</span>
+                    </a>
+                    <a href="{{ route('admin.reports.financial') }}?view=receivables" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-hand-holding-dollar w-4 text-center text-slate-400"></i>
+                        <span>Accounts Receivable</span>
+                    </a>
+                    <a href="{{ route('admin.reports.financial') }}?view=payables" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-file-invoice w-4 text-center text-slate-400"></i>
+                        <span>Supplier Payments Due</span>
+                    </a>
                 </div>
+            </div>
 
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-500">Low Stock Items</div>
-                            <div class="text-2xl font-bold text-gray-900">{{ number_format($stats['low_stock_items']) }}</div>
-                        </div>
-                    </div>
+            {{-- Inventory & Supply Chain --}}
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
+                    <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-100 text-slate-800 shrink-0">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </span>
+                    <h3 class="text-sm font-semibold text-slate-800">Inventory &amp; Supply Chain</h3>
                 </div>
+                <div class="p-2 space-y-0.5">
+                    <a href="{{ route('admin.reports.inventory') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-layer-group w-4 text-center text-slate-400"></i>
+                        <span>Stock Level Report</span>
+                    </a>
+                    <a href="{{ route('admin.reports.inventory') }}?status=low_stock" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-arrow-down-short-wide w-4 text-center text-slate-400"></i>
+                        <span>Low Stock Alerts</span>
+                    </a>
+                    <a href="{{ route('admin.reports.inventory') }}?status=expired" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-ban w-4 text-center text-red-500"></i>
+                        <span>Expired Products</span>
+                    </a>
+                    <a href="{{ route('admin.reports.inventory') }}?status=nearly_expired" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-hourglass-half w-4 text-center text-amber-500"></i>
+                        <span>Nearly Expired (DOH)</span>
+                    </a>
+                    <a href="{{ route('admin.purchases.index') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-clipboard-list w-4 text-center text-slate-400"></i>
+                        <span>Purchase Order History</span>
+                    </a>
+                    <a href="{{ route('admin.analytics.suppliers') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-truck-fast w-4 text-center text-slate-400"></i>
+                        <span>Supplier Performance</span>
+                    </a>
+                </div>
+            </div>
 
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6">
-                    <div class="flex items-center">
-                        <div class="flex-shrink-0">
-                            <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-                                <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-500">Expired Items</div>
-                            <div class="text-2xl font-bold text-gray-900">{{ number_format($stats['expired_items']) }}</div>
-                        </div>
+            {{-- Compliance & Regulatory --}}
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
+                    <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-slate-100 text-slate-800 shrink-0">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </span>
+                    <h3 class="text-sm font-semibold text-slate-800">Compliance &amp; Regulatory</h3>
+                </div>
+                <div class="p-2 space-y-0.5">
+                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-prescription-bottle-medical w-4 text-center text-red-400"></i>
+                            <span>Controlled Substances / Narcotics Log</span>
+                        </span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-export w-4 text-center text-slate-400"></i>
+                            <span>DOH Compliance Export</span>
+                        </span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-trash-can w-4 text-center text-amber-400"></i>
+                            <span>Inventory Wastage &amp; Disposal Log</span>
+                        </span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Report Categories -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Sales Reports -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center mb-4">
-                            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Sales Reports</h3>
-                                <p class="text-sm text-gray-600">Analyze sales performance and trends</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <a href="{{ route('admin.reports.sales') }}" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                                📊 Sales Summary Report
-                            </a>
-                            <a href="{{ route('admin.reports.sales') }}?period=daily" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                                📈 Daily Sales Analysis
-                            </a>
-                            <a href="{{ route('admin.reports.sales') }}?period=monthly" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md transition-colors">
-                                📅 Monthly Sales Report
-                            </a>
-                        </div>
-                    </div>
+            {{-- Customers & Insurance --}}
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm flex flex-col">
+                <div class="flex items-center gap-3 px-4 py-3 border-b border-slate-200">
+                    <span class="inline-flex items-center justify-center h-9 w-9 rounded-md bg-emerald-50 text-emerald-600 shrink-0">
+                        <i class="fa-solid fa-users"></i>
+                    </span>
+                    <h3 class="text-sm font-semibold text-slate-800">Customers &amp; Insurance</h3>
                 </div>
-
-                <!-- Inventory Reports -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center mb-4">
-                            <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Inventory Reports</h3>
-                                <p class="text-sm text-gray-600">Monitor stock levels and inventory health</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <a href="{{ route('admin.reports.inventory') }}" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 rounded-md transition-colors">
-                                📦 Stock Level Report
-                            </a>
-                            <a href="{{ route('admin.reports.inventory') }}?status=low_stock" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 rounded-md transition-colors">
-                                ⚠️ Low Stock Alert
-                            </a>
-                            <a href="{{ route('admin.reports.inventory') }}?status=expired" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 rounded-md transition-colors">
-                                🚫 Expired Products
-                            </a>
-                            <a href="{{ route('admin.reports.inventory') }}?status=nearly_expired" class="block w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-md transition-colors">
-                                ⏰ Nearly Expired Products
-                            </a>
-                        </div>
+                <div class="p-2 space-y-0.5">
+                    <a href="{{ route('admin.reports.customers') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-chart-pie w-4 text-center text-slate-400"></i>
+                        <span>Customer Analysis</span>
+                    </a>
+                    <a href="{{ route('admin.reports.customers') }}?sort=top" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-ranking-star w-4 text-center text-slate-400"></i>
+                        <span>Top Customers</span>
+                    </a>
+                    <a href="{{ route('admin.reports.customers') }}?view=purchase-history" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-clock-rotate-left w-4 text-center text-slate-400"></i>
+                        <span>Purchase History</span>
+                    </a>
+                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-medical w-4 text-center text-slate-400"></i>
+                            <span>Insurance Claims Settlement</span>
+                        </span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
                     </div>
-                </div>
-
-                <!-- Customer Reports -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center mb-4">
-                            <div class="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Customer Reports</h3>
-                                <p class="text-sm text-gray-600">Customer analytics and insights</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <a href="{{ route('admin.reports.customers') }}" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
-                                👥 Customer Analysis
-                            </a>
-                            <a href="{{ route('admin.reports.customers') }}" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
-                                🏆 Top Customers
-                            </a>
-                            <a href="{{ route('admin.reports.customers') }}" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-md transition-colors">
-                                📊 Purchase History
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Financial Reports -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center mb-4">
-                            <div class="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"/>
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">Financial Reports</h3>
-                                <p class="text-sm text-gray-600">Revenue, profit, and financial analysis</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <a href="{{ route('admin.reports.financial') }}" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors">
-                                💰 Revenue Report
-                            </a>
-                            <a href="{{ route('admin.reports.financial') }}" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors">
-                                📈 Profit Analysis
-                            </a>
-                            <a href="{{ route('admin.reports.financial') }}" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors">
-                                📊 Monthly Summary
-                            </a>
-                            <a href="{{ route('admin.reports.financial') }}#supplier-payments" class="block w-full text-left px-4 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-md transition-colors">
-                                🏪 Supplier Payments Due
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-
-
-                <!-- System Reports -->
-                <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
-                    <div class="p-6">
-                        <div class="flex items-center mb-4">
-                            <div class="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center mr-4">
-                                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-lg font-semibold text-gray-900">System Reports</h3>
-                                <p class="text-sm text-gray-600">System logs and activity reports</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <a href="{{ route('admin.settings.logs') }}" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                                📋 System Logs
-                            </a>
-                            <a href="{{ route('admin.settings.index') }}" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                                ⚙️ System Status
-                            </a>
-                            <a href="{{ route('admin.settings.index') }}" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                                🔧 Configuration
-                            </a>
-                        </div>
+                    <div class="flex items-center justify-between gap-3 px-3 py-2 rounded-md text-sm text-slate-400 cursor-default" title="Coming soon">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-circle-xmark w-4 text-center text-slate-400"></i>
+                            <span>Insurance Rejection Log</span>
+                        </span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-500 bg-slate-100 rounded px-1.5 py-0.5">Soon</span>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 </x-app-layout>
