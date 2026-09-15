@@ -31,6 +31,18 @@
                 </div>
             @endif
 
+            @if(session('import_errors'))
+                <div class="bg-amber-50 border border-amber-300 text-amber-800 px-4 py-3 rounded mb-4">
+                    <div class="font-semibold">{{ session('import_summary') }}</div>
+                    <p class="mt-1 text-sm text-amber-700">The following rows were skipped &mdash; each line shows the row number and the reason:</p>
+                    <ul class="mt-2 max-h-64 list-disc space-y-1 overflow-auto pl-5 text-sm">
+                        @foreach(session('import_errors') as $importError)
+                            <li>{{ $importError }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                 <div class="p-6 lg:p-8 bg-white border-b border-gray-200">
                     <h1 class="text-2xl font-medium text-gray-900">

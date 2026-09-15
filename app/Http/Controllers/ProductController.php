@@ -272,6 +272,13 @@ class ProductController extends Controller
             // Clean up temporary file
             Storage::delete($path);
 
+            // When some rows failed, surface exactly which rows and why
+            if (($result['errors'] ?? 0) > 0) {
+                return $this->redirectToIndex('products', null)
+                    ->with('import_summary', "Import completed with issues: {$result['created']} created, {$result['updated']} updated, {$result['errors']} errors.")
+                    ->with('import_errors', $result['error_messages'] ?? []);
+            }
+
             return $this->redirectToIndex('products', "Import completed! {$result['created']} products created, {$result['updated']} updated, {$result['errors']} errors.");
 
         } catch (\Exception $e) {
@@ -506,6 +513,9 @@ class ProductController extends Controller
                 'errors' => $errors
             ]);
         }
+
+        // Surface the per-row error details so the UI can show where each error came from
+        $results['error_messages'] = $errors;
 
         return $results;
     }
