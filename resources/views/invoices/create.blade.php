@@ -599,12 +599,12 @@
             // Search functionality
             let searchTimeout;
             productSearch.addEventListener('input', function() {
-                const searchTerm = this.value.trim().toLowerCase();
+                const searchTerm = this.value.trim();
 
                 // Clear previous timeout
                 clearTimeout(searchTimeout);
 
-                if (searchTerm.length < 2) {
+                if (searchTerm.length < 1) {
                     hideSearchDropdown();
                     return;
                 }
@@ -612,7 +612,7 @@
                 // Debounce search
                 searchTimeout = setTimeout(() => {
                     performSearch(searchTerm);
-                }, 300);
+                }, 250);
             });
 
             // Hide dropdown when clicking outside
@@ -630,18 +630,35 @@
                 }
             });
 
-            function performSearch(searchTerm) {
-                console.log('Searching for:', searchTerm);
+            // Search the full catalog server-side (case-insensitive, prefix-ranked).
+            // Falls back to the pre-loaded list only if the request fails.
+            let searchAbort = null;
+            async function performSearch(searchTerm) {
+                const term = searchTerm.toLowerCase();
+                try {
+                    if (searchAbort) searchAbort.abort();
+                    searchAbort = new AbortController();
 
-                const filteredProducts = allProducts.filter(product => {
-                    return product.name.toLowerCase().includes(searchTerm) ||
-                           product.code.toLowerCase().includes(searchTerm) ||
-                           product.barcode.toLowerCase().includes(searchTerm) ||
-                           product.category.toLowerCase().includes(searchTerm);
-                });
+                    const url = "{{ route('invoices.product-search') }}?q=" + encodeURIComponent(searchTerm);
+                    const response = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+                        signal: searchAbort.signal,
+                    });
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
 
-                console.log('Found products:', filteredProducts.length);
-                displaySearchResults(filteredProducts);
+                    const products = await response.json();
+                    displaySearchResults(products);
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                    console.error('Product search failed, falling back to loaded list:', err);
+                    const filtered = allProducts.filter(product =>
+                        (product.name || '').toLowerCase().includes(term) ||
+                        (product.code || '').toLowerCase().includes(term) ||
+                        (product.barcode || '').toLowerCase().includes(term) ||
+                        (product.category || '').toLowerCase().includes(term)
+                    );
+                    displaySearchResults(filtered);
+                }
             }
 
             function displaySearchResults(products) {

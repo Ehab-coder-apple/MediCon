@@ -187,6 +187,7 @@ Route::middleware([
     });
 
     // Invoice management routes (available to all authenticated users)
+    Route::get('/invoices-product-search', [App\Http\Controllers\InvoiceController::class, 'searchProducts'])->name('invoices.product-search');
     Route::resource('invoices', App\Http\Controllers\InvoiceController::class);
     Route::post('/invoices/{invoice}/payment', [App\Http\Controllers\InvoiceController::class, 'processPayment'])->name('invoices.process-payment');
     Route::post('/invoices/{invoice}/mark-sent', [App\Http\Controllers\InvoiceController::class, 'markAsSent'])->name('invoices.mark-sent');

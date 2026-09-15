@@ -129,6 +129,67 @@ class InvoiceController extends Controller
     }
 
     /**
+     * Search the full product catalog for the POS search box.
+     *
+     * Searches every active product for the tenant (not just the limited display
+     * set) by name, code, barcode or category. Matching is case-insensitive and
+     * prefix matches are ranked first so typing the first letters surfaces the
+     * most relevant products. Only products with sellable stock (a batch with
+     * quantity > 0 that has not expired) are returned.
+     */
+    public function searchProducts(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user) {
+            abort(403, 'Access denied: User not authenticated');
+        }
+
+        $tenantId = $user->tenant_id;
+        if (!$tenantId) {
+            $tenantId = Tenant::where('is_active', true)->value('id');
+        }
+
+        $term = trim((string) $request->query('q', ''));
+        if ($term === '' || $tenantId === null) {
+            return response()->json([]);
+        }
+
+        $like = '%' . $term . '%';
+        $prefix = $term . '%';
+
+        $products = Product::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->where(function ($query) use ($like) {
+                $query->where('name', 'like', $like)
+                      ->orWhere('code', 'like', $like)
+                      ->orWhere('barcode', 'like', $like)
+                      ->orWhere('category', 'like', $like);
+            })
+            ->whereHas('batches', function ($query) {
+                $query->where('quantity', '>', 0)
+                      ->where('expiry_date', '>', now());
+            })
+            ->orderByRaw('CASE WHEN name like ? THEN 0 WHEN code like ? THEN 1 ELSE 2 END', [$prefix, $prefix])
+            ->orderBy('name')
+            ->limit(20)
+            ->get();
+
+        return response()->json(
+            $products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'barcode' => $product->barcode ?? '',
+                    'price' => (float) $product->selling_price,
+                    'stock' => $product->active_quantity,
+                    'category' => $product->category ?? '',
+                ];
+            })->values()
+        );
+    }
+
+    /**
      * Store a newly created invoice
      */
     public function store(Request $request): RedirectResponse
