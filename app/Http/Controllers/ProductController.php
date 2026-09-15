@@ -15,6 +15,8 @@ use App\Traits\HasRoleBasedRouting;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class ProductController extends Controller
 {
@@ -529,8 +531,27 @@ class ProductController extends Controller
         $spreadsheet = IOFactory::load($filePath);
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Convert sheet data to an array
-        $rows = $sheet->toArray(null, false, false, false);
+        // Convert sheet data to an array. Iterate cell-by-cell so that date cells
+        // (stored by Excel as serial numbers, e.g. 46387) are converted to real
+        // YYYY-MM-DD strings instead of leaking the raw serial into the CSV.
+        $highestRow = $sheet->getHighestDataRow();
+        $highestColIndex = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+
+        $rows = [];
+        for ($r = 1; $r <= $highestRow; $r++) {
+            $cells = [];
+            for ($c = 1; $c <= $highestColIndex; $c++) {
+                $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($c) . $r);
+                $value = $cell->getValue();
+
+                if ($value !== null && $value !== '' && is_numeric($value) && ExcelDate::isDateTime($cell)) {
+                    $value = ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d');
+                }
+
+                $cells[] = $value;
+            }
+            $rows[] = $cells;
+        }
 
         // Create a temporary CSV file
         $tempDir = storage_path('app/temp');
