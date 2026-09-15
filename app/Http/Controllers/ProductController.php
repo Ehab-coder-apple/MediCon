@@ -664,8 +664,10 @@ class ProductController extends Controller
             }
         }
 
-        // Validate required fields
-        $required = ['name', 'category', 'manufacturer', 'code', 'batch_number', 'expiry_date', 'initial_quantity', 'cost_price', 'selling_price'];
+        // Validate required fields. initial_quantity is intentionally not required:
+        // a product can be kept in the system with no stock (out of stock) and
+        // defaults to 0 below.
+        $required = ['name', 'category', 'manufacturer', 'code', 'batch_number', 'expiry_date', 'cost_price', 'selling_price'];
         foreach ($required as $field) {
             if (empty($productData[$field])) {
                 throw new \Exception("Missing required field: {$field}");
@@ -675,11 +677,14 @@ class ProductController extends Controller
         // Validate and clean data types
         try {
             // Clean numeric fields
-            if (isset($productData['initial_quantity'])) {
+            if (isset($productData['initial_quantity']) && $productData['initial_quantity'] !== '') {
                 $productData['initial_quantity'] = (int) preg_replace('/[^0-9]/', '', $productData['initial_quantity']);
-                if ($productData['initial_quantity'] <= 0) {
-                    throw new \Exception("Initial quantity must be greater than 0");
+                if ($productData['initial_quantity'] < 0) {
+                    throw new \Exception("Initial quantity cannot be negative");
                 }
+            } else {
+                // No stock provided: keep the product but start out of stock
+                $productData['initial_quantity'] = 0;
             }
 
             if (isset($productData['cost_price'])) {
@@ -759,17 +764,15 @@ class ProductController extends Controller
             throw new \Exception('Invalid alert_quantity: must be a positive integer');
         }
         if (!is_numeric($productData['initial_quantity']) || $productData['initial_quantity'] < 0) {
-            throw new \Exception('Invalid initial_quantity: must be a positive integer');
+            throw new \Exception('Invalid initial_quantity: must be a non-negative integer');
         }
 
-        // Validate expiry date
+        // Validate expiry date format only. Past dates are allowed so that already
+        // expired stock can be imported and surfaced in the expired products report.
         try {
-            $expiryDate = \Carbon\Carbon::createFromFormat('Y-m-d', $productData['expiry_date']);
-            if ($expiryDate->isPast()) {
-                throw new \Exception('Expiry date must be in the future');
-            }
+            \Carbon\Carbon::createFromFormat('Y-m-d', $productData['expiry_date']);
         } catch (\Exception $e) {
-            throw new \Exception('Invalid expiry_date: must be in YYYY-MM-DD format and in the future');
+            throw new \Exception('Invalid expiry_date: must be in YYYY-MM-DD format.');
         }
 
         return $productData;

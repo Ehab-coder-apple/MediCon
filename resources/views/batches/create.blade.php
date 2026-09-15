@@ -70,7 +70,7 @@
                                 <label for="quantity" class="block text-sm font-medium text-gray-700">Quantity</label>
                                 <input type="number" name="quantity" id="quantity" value="{{ old('quantity') }}" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                                    min="1" required>
+                                    min="0" required>
                                 @error('quantity')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
@@ -81,7 +81,7 @@
                                 <label for="expiry_date" class="block text-sm font-medium text-gray-700">Expiry Date</label>
                                 <input type="date" name="expiry_date" id="expiry_date" value="{{ old('expiry_date') }}" 
                                     class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                                    min="{{ date('Y-m-d', strtotime('+1 day')) }}" required>
+                                    required>
                                 @error('expiry_date')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror

@@ -102,8 +102,8 @@ class BatchController extends Controller
         $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'batch_number' => 'required|string|max:255',
-            'expiry_date' => 'required|date|after:today',
-            'quantity' => 'required|integer|min:1',
+            'expiry_date' => 'required|date',
+            'quantity' => 'required|integer|min:0',
             'cost_price' => 'nullable|numeric|min:0',
         ]);
 
