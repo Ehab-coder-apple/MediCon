@@ -94,6 +94,14 @@ class Product extends Model
             return $this->active_quantity;
         }
 
+        // Legacy/imported products that have never been placed into any warehouse
+        // are tracked at the batch level. Report their batch-based (non-expired)
+        // stock so they remain sellable, while products that DO use the
+        // multi-warehouse workflow keep strict On-Shelf gating below.
+        if (! $this->warehouseStocks()->exists()) {
+            return $this->active_quantity;
+        }
+
         // Ensure default system warehouses (including On Shelf) exist
         Warehouse::ensureDefaultSystemWarehouses($tenantId, $branchId);
 

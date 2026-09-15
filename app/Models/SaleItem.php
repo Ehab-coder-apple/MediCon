@@ -107,6 +107,14 @@ class SaleItem extends Model
             return;
         }
 
+        // Products that are not managed through the multi-warehouse workflow (no
+        // warehouse stock records exist for them) are tracked at the batch level.
+        // Deduct directly from the batch so imported/legacy products stay sellable.
+        if (! WarehouseStock::where('product_id', $product->id)->exists()) {
+            $this->updateInventoryLegacy();
+            return;
+        }
+
         $user = auth()->user();
         $tenantId = $user?->tenant_id
             ?? $product->tenant_id
@@ -247,6 +255,13 @@ class SaleItem extends Model
 
         $batch = $this->batch;
         if (! $batch) {
+            return;
+        }
+
+        // Mirror the deduction path: batch-managed (non-warehouse) products are
+        // restored directly to the batch.
+        if (! WarehouseStock::where('product_id', $product->id)->exists()) {
+            $this->restoreInventoryLegacy();
             return;
         }
 

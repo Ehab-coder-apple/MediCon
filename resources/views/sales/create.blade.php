@@ -492,7 +492,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Quantity</label>
                             <input type="number" name="items[${item.index}][quantity]" class="quantity-input mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" 
-                                value="${item.quantity}" min="1" max="${product ? product.available_quantity : 999}" required>
+                                value="${item.quantity}" min="1" max="${product && product.available_quantity > 0 ? product.available_quantity : ''}" required>
                         </div>
                         
                         <div>

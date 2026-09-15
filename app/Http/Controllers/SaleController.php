@@ -253,7 +253,10 @@ class SaleController extends Controller
                     'code' => $product->code,
                     'barcode' => $product->barcode,
                     'selling_price' => $product->selling_price,
-                    // POS should only consider stock that is physically on shelf (sellable warehouses)
+                    'cost_price' => $product->cost_price,
+                    'net_price' => $product->net_price,
+                    // Stock physically on shelf (sellable warehouses); for products not
+                    // managed via warehouses this falls back to batch-based stock.
                     'available_quantity' => $product->on_shelf_quantity,
                     // Optional: expose total active quantity for informational purposes
                     'total_quantity' => $product->active_quantity,
