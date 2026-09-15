@@ -260,10 +260,13 @@ class ProductController extends Controller
 
             // Process the file based on its type
             $extension = $file->getClientOriginalExtension();
+            // Resolve the absolute path from the same disk storeAs() used
+            // (the default 'local' disk root is storage/app/private on Laravel 11+).
+            $absolutePath = Storage::path($path);
             if (in_array($extension, ['csv', 'txt'])) {
-                $result = $this->processCsvFile(storage_path('app/' . $path), $hasHeaders, $updateExisting);
+                $result = $this->processCsvFile($absolutePath, $hasHeaders, $updateExisting);
             } elseif ($extension === 'xlsx') {
-                $result = $this->processExcelFile(storage_path('app/' . $path), $hasHeaders, $updateExisting);
+                $result = $this->processExcelFile($absolutePath, $hasHeaders, $updateExisting);
             }
 
             // Clean up temporary file
@@ -421,7 +424,7 @@ class ProductController extends Controller
         }
 
         // Try different delimiters to find the correct one
-        $delimiters = [',', ';', '\t', '|'];
+        $delimiters = [',', ';', "\t", '|'];
         $bestDelimiter = ',';
         $maxColumns = 0;
 
