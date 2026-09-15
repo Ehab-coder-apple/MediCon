@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Shift;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Services\DatabaseTransactionService;
@@ -75,9 +76,14 @@ class QuickSaleController extends Controller
             }
 
             // Prepare sale data
+            // Attach the active shift when one is open (best-effort; the barcode
+            // quick-sale path does not hard-block on shift state).
+            $activeShift = Shift::currentFor($user);
+
             $saleData = [
                 'customer_id' => $customerId,
                 'user_id' => $user->id,
+                'shift_id' => $activeShift?->id,
                 'tenant_id' => $user->tenant_id,
                 'sale_date' => now(),
                 'invoice_number' => Sale::generateInvoiceNumber(),

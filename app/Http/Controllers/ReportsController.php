@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\Batch;
 use App\Models\User;
+use App\Models\Shift;
 use App\Traits\HasRoleBasedRouting;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -94,6 +95,85 @@ class ReportsController extends Controller
         ];
 
         return view('reports.sales', compact('sales', 'summary', 'startDate', 'endDate', 'period'));
+    }
+
+    /**
+     * Staff Sales Performance: completed sales aggregated by staff member.
+     */
+    public function staffPerformance(Request $request): View
+    {
+        $this->authorize('access-admin-dashboard');
+
+        $startDate = $request->input('start_date', now()->startOfMonth()->format('Y-m-d'));
+        $endDate = $request->input('end_date', now()->endOfMonth()->format('Y-m-d'));
+
+        $rows = Sale::query()
+            ->join('users', 'sales.user_id', '=', 'users.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.sale_date', [$startDate, $endDate])
+            ->groupBy('sales.user_id', 'users.name')
+            ->select(
+                'sales.user_id',
+                'users.name as staff_name',
+                DB::raw('COUNT(*) as total_transactions'),
+                DB::raw('COALESCE(SUM(sales.total_price), 0) as gross_sales'),
+                DB::raw('COALESCE(AVG(sales.total_price), 0) as average_order_value')
+            )
+            ->orderByDesc('gross_sales')
+            ->get();
+
+        $totalTransactions = (int) $rows->sum('total_transactions');
+        $grossSales = (float) $rows->sum('gross_sales');
+
+        $summary = [
+            'staff_count' => $rows->count(),
+            'total_transactions' => $totalTransactions,
+            'gross_sales' => $grossSales,
+            'average_order_value' => $totalTransactions > 0 ? $grossSales / $totalTransactions : 0,
+        ];
+
+        return view('reports.staff-performance', compact('rows', 'summary', 'startDate', 'endDate'));
+    }
+
+    /**
+     * Shift Reconciliation Ledger: chronological log of flexible shifts with
+     * expected system sales, cash entered and variance.
+     */
+    public function shiftReconciliation(Request $request): View
+    {
+        $this->authorize('access-admin-dashboard');
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $query = Shift::with('user')->orderByDesc('start_time');
+
+        if ($startDate) {
+            $query->whereDate('start_time', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('start_time', '<=', $endDate);
+        }
+
+        $shifts = $query->paginate(20)->withQueryString();
+
+        // Expected system sales per shift, resolved in a single grouped query.
+        $expectedByShift = Sale::query()
+            ->where('status', 'completed')
+            ->whereNotNull('shift_id')
+            ->whereIn('shift_id', $shifts->pluck('id'))
+            ->groupBy('shift_id')
+            ->select('shift_id', DB::raw('COALESCE(SUM(total_price), 0) as expected'))
+            ->pluck('expected', 'shift_id');
+
+        $canEdit = auth()->user()->isAdmin() || auth()->user()->isSuperAdmin();
+
+        $summary = [
+            'total_shifts' => $shifts->total(),
+            'open_shifts' => Shift::open()->count(),
+        ];
+
+        return view('reports.shift-reconciliation', compact('shifts', 'expectedByShift', 'canEdit', 'summary', 'startDate', 'endDate'));
     }
 
     /**

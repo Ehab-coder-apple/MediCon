@@ -11,6 +11,7 @@ class Sale extends Model
     protected $fillable = [
         'customer_id',
         'user_id',
+        'shift_id',
         'tenant_id',
         'sale_date',
         'total_price',
@@ -55,6 +56,14 @@ class Sale extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the shift during which this sale was completed
+     */
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     /**

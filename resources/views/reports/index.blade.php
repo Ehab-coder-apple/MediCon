@@ -52,6 +52,14 @@
                         <i class="fa-solid fa-file-invoice w-4 text-center text-slate-400"></i>
                         <span>Supplier Payments Due</span>
                     </a>
+                    <a href="{{ route('admin.reports.staff-performance') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-user-group w-4 text-center text-slate-400"></i>
+                        <span>Staff Sales Performance</span>
+                    </a>
+                    <a href="{{ route('admin.reports.shift-reconciliation') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                        <i class="fa-solid fa-scale-balanced w-4 text-center text-slate-400"></i>
+                        <span>Shift Reconciliation Logs</span>
+                    </a>
                 </div>
             </div>
 

@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Shift;
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
 use App\Models\Tenant;
@@ -39,8 +40,14 @@ class SaleController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        // Single-terminal rule: an open shift is required before selling.
+        if (! Shift::currentFor(auth()->user())) {
+            return redirect()->route('shifts.start')
+                ->with('info', 'Please start your shift (enter the opening cash) before processing sales.');
+        }
+
         $customers = Customer::orderBy('name')->get();
         $products = Product::where('is_active', true)
             ->with(['batches' => function($query) {
@@ -59,12 +66,20 @@ class SaleController extends Controller
     public function store(StoreSaleRequest $request): RedirectResponse
     {
         try {
+            // Single-terminal rule: block completing a sale without an active shift.
+            $shift = Shift::currentFor(auth()->user());
+            if (! $shift) {
+                return redirect()->route('shifts.start')
+                    ->with('info', 'You must start a shift (enter the opening cash) before completing a sale.');
+            }
+
             $validated = $request->validated();
 
             // Prepare sale data
             $saleData = [
                 'customer_id' => $validated['customer_id'],
                 'user_id' => auth()->id(),
+                'shift_id' => $shift->id,
                 'sale_date' => $validated['sale_date'] ?? now(),
                 'invoice_number' => $this->generateInvoiceNumber(),
                 'payment_method' => $validated['payment_method'],

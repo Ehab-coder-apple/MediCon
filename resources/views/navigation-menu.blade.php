@@ -216,6 +216,19 @@
 
                             <div class="border-t border-gray-200"></div>
 
+                            <!-- Shift Management -->
+                            <div class="block px-4 py-2 text-xs text-gray-400">
+                                {{ __('Shift') }}
+                            </div>
+                            <x-dropdown-link href="{{ route('shifts.start') }}">
+                                {{ __('Start Shift') }}
+                            </x-dropdown-link>
+                            <x-dropdown-link href="{{ route('shifts.end') }}">
+                                {{ __('End Shift') }}
+                            </x-dropdown-link>
+
+                            <div class="border-t border-gray-200"></div>
+
                             <!-- Authentication -->
                             <form method="POST" action="{{ route('logout') }}" x-data>
                                 @csrf
@@ -347,6 +360,14 @@
                         {{ __('API Tokens') }}
                     </x-responsive-nav-link>
                 @endif
+
+                <!-- Shift Management -->
+                <x-responsive-nav-link href="{{ route('shifts.start') }}" :active="request()->routeIs('shifts.start')">
+                    {{ __('Start Shift') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link href="{{ route('shifts.end') }}" :active="request()->routeIs('shifts.end')">
+                    {{ __('End Shift') }}
+                </x-responsive-nav-link>
 
                 <!-- Authentication -->
                 <form method="POST" action="{{ route('logout') }}" x-data>

@@ -20,6 +20,7 @@ use App\Http\Controllers\SalesReturnController;
 use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\ComplianceReportsController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\SalesStaffDashboardController;
 use App\Http\Controllers\SubcategoryController;
@@ -198,6 +199,12 @@ Route::middleware([
     // Product lookup for barcode scanner (available to all authenticated users)
     Route::get('/sales/product-lookup', [SaleController::class, 'getProductDetails'])->name('sales.product-lookup');
 
+    // Shift management (shared single terminal) - available to any operator
+    Route::get('/shift/start', [ShiftController::class, 'showStart'])->name('shifts.start');
+    Route::post('/shift/start', [ShiftController::class, 'start'])->name('shifts.start.store');
+    Route::get('/shift/end', [ShiftController::class, 'showEnd'])->name('shifts.end');
+    Route::post('/shift/end', [ShiftController::class, 'end'])->name('shifts.end.store');
+
     // Admin routes
     Route::middleware(['can:access-admin-dashboard'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
@@ -346,6 +353,14 @@ Route::middleware([
         Route::get('/reports/wastage-log', [ComplianceReportsController::class, 'wastageLog'])->name('reports.wastage');
         Route::get('/reports/insurance-claims', [ComplianceReportsController::class, 'insuranceClaims'])->name('reports.insurance-claims');
         Route::get('/reports/insurance-rejections', [ComplianceReportsController::class, 'insuranceRejections'])->name('reports.insurance-rejections');
+
+        // Staff performance & shift reconciliation reports
+        Route::get('/reports/staff-performance', [ReportsController::class, 'staffPerformance'])->name('reports.staff-performance');
+        Route::get('/reports/shift-reconciliation', [ReportsController::class, 'shiftReconciliation'])->name('reports.shift-reconciliation');
+
+        // Shift retroactive adjustment (admin only)
+        Route::get('/shifts/{shift}/edit', [ShiftController::class, 'edit'])->name('shifts.edit');
+        Route::put('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
 
         // System Settings routes
         Route::get('/settings', [SystemSettingsController::class, 'index'])->name('settings.index');

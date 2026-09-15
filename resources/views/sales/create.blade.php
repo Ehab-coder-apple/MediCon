@@ -4,14 +4,25 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('New Sale') }}
             </h2>
-            <a href="{{ auth()->user()->isAdmin() ? route('admin.sales.index') : (auth()->user()->isPharmacist() ? route('pharmacist.sales.index') : route('sales-staff.sales.index')) }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                Back to Sales
-            </a>
+            <div class="flex items-center gap-2">
+                <a href="{{ route('shifts.end') }}" class="bg-slate-700 hover:bg-slate-900 text-white font-bold py-2 px-4 rounded">
+                    End Shift
+                </a>
+                <a href="{{ auth()->user()->isAdmin() ? route('admin.sales.index') : (auth()->user()->isPharmacist() ? route('pharmacist.sales.index') : route('sales-staff.sales.index')) }}" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Back to Sales
+                </a>
+            </div>
         </div>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            @if (session('success'))
+                <div class="mb-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+            @endif
+            @if (session('info'))
+                <div class="mb-4 rounded-md border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">{{ session('info') }}</div>
+            @endif
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
                 <div class="p-6 lg:p-8 bg-white border-b border-gray-200">
                     <h1 class="text-2xl font-medium text-gray-900">
