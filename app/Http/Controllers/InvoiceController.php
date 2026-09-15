@@ -7,6 +7,7 @@ use App\Models\InvoiceItem;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Batch;
+use App\Models\Shift;
 use App\Models\Tenant;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsAppService;
@@ -125,7 +126,10 @@ class InvoiceController extends Controller
         $displayService = new ProductDisplayService();
         $products = $displayService->getDisplayProducts($tenantId);
 
-        return view('invoices.create', compact('customers', 'products'));
+        // Active shift for this operator drives the on-screen terminal lock/indicator.
+        $activeShift = Shift::currentFor($user);
+
+        return view('invoices.create', compact('customers', 'products', 'activeShift'));
     }
 
     /**
@@ -195,6 +199,14 @@ class InvoiceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $user = auth()->user();
+
+        // Checkout gate: a sale cannot be completed without an active shift session.
+        if (! Shift::currentFor($user)) {
+            return redirect()->route('invoices.create')
+                ->withInput()
+                ->with('shift_required', 'An active shift session is required to process sales.');
+        }
+
         $tenantId = $user->tenant_id;
 
         // If user has no tenant_id, use the first active tenant

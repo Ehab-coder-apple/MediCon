@@ -23,6 +23,25 @@ class ShiftController extends Controller
     }
 
     /**
+     * Resolve where to send the operator after opening a shift.
+     *
+     * Honours a whitelisted `redirect_to` route name (e.g. the invoices POS that
+     * launched the start-shift modal) so the cashier returns to the same screen,
+     * falling back to the role-aware POS. Only known route names are accepted to
+     * avoid open-redirects.
+     */
+    protected function afterShiftRedirect(Request $request): string
+    {
+        $to = $request->input('redirect_to');
+
+        if (is_string($to) && $to !== '' && \Illuminate\Support\Facades\Route::has($to)) {
+            return route($to);
+        }
+
+        return $this->posRoute();
+    }
+
+    /**
      * Show the Start Shift form for the incoming pharmacist on the shared terminal.
      */
     public function showStart(): View|RedirectResponse
@@ -48,7 +67,7 @@ class ShiftController extends Controller
 
         // Guard against opening two concurrent shifts for the same user.
         if (Shift::currentFor(auth()->user())) {
-            return redirect()->to($this->posRoute())
+            return redirect()->to($this->afterShiftRedirect($request))
                 ->with('info', 'You already have an open shift.');
         }
 
@@ -59,7 +78,7 @@ class ShiftController extends Controller
             'status' => Shift::STATUS_OPEN,
         ]);
 
-        return redirect()->to($this->posRoute())
+        return redirect()->to($this->afterShiftRedirect($request))
             ->with('success', 'Shift started. You can now process sales at this terminal.');
     }
 

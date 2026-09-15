@@ -10,9 +10,24 @@
                     Point of Sale System
                 </h2>
             </div>
-            <div style="color: #a7f3d0; font-size: 14px;">
-                <i class="fas fa-calendar mr-2"></i>
-                {{ date('M d, Y g:i A') }}
+            <div style="display: flex; align-items: center; gap: 16px;">
+                @if($activeShift)
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.10); border: 1px solid rgba(167,243,208,0.35); padding: 5px 12px; border-radius: 9999px;" title="Active shift session">
+                        <span style="width: 9px; height: 9px; border-radius: 9999px; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.25);"></span>
+                        <i class="fas fa-user-clock" style="color: #a7f3d0;"></i>
+                        <span style="color: #ffffff; font-size: 13px; font-weight: 600; white-space: nowrap;">Active Shift: {{ optional($activeShift->user)->name ?? 'Unknown' }}</span>
+                    </div>
+                @else
+                    <div style="display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.18); border: 1px solid rgba(252,165,165,0.45); padding: 5px 12px; border-radius: 9999px;" title="No active shift session">
+                        <span style="width: 9px; height: 9px; border-radius: 9999px; background: #f87171;"></span>
+                        <i class="fas fa-lock" style="color: #fecaca;"></i>
+                        <span style="color: #fecaca; font-size: 13px; font-weight: 600; white-space: nowrap;">No Active Shift</span>
+                    </div>
+                @endif
+                <div style="color: #a7f3d0; font-size: 14px; white-space: nowrap;">
+                    <i class="fas fa-calendar mr-2"></i>
+                    {{ date('M d, Y g:i A') }}
+                </div>
             </div>
         </div>
     </x-slot>
@@ -233,6 +248,15 @@
                                             🗑️ Clear
                                         </button>
                                     </div>
+
+                                    <!-- End Active Shift (shift-tracking integration) -->
+                                    <button type="button" id="endShiftBtn" onclick="openEndShiftModal()"
+                                            style="width: 100%; margin-top: 3px; background: #ffffff; color: #1e293b; font-weight: 700; padding: 6px 10px; border-radius: 4px; font-size: 10px; border: 1px solid #1e293b; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;"
+                                            onmouseover="this.style.background='#1e293b'; this.style.color='#ffffff';"
+                                            onmouseout="this.style.background='#ffffff'; this.style.color='#1e293b';">
+                                        <i class="fas fa-lock"></i>
+                                        <span>End Active Shift</span>
+                                    </button>
                                 </div>
 
                                 <!-- Hidden Fields -->
@@ -872,6 +896,132 @@
             // Initialize
             updateSummary();
             updateCreateButton();
+        });
+    </script>
+    @endpush
+
+    @push('modals')
+    {{-- Shift-tracking terminal integration --}}
+    @unless($activeShift)
+        <!-- Terminal Lock Overlay: blocks the POS until a shift is opened -->
+        <div id="terminalLockOverlay" style="position: fixed; inset: 0; z-index: 9990; background: rgba(2,44,34,0.82); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: #ffffff; max-width: 460px; width: 100%; border-radius: 16px; box-shadow: 0 25px 60px rgba(0,0,0,0.45); overflow: hidden;">
+                <div style="background: linear-gradient(to right, #165A54, #0d3d38); padding: 22px 24px; text-align: center;">
+                    <div style="width: 56px; height: 56px; border-radius: 9999px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;">
+                        <i class="fas fa-lock" style="color: #ffffff; font-size: 24px;"></i>
+                    </div>
+                    <h3 style="color: #ffffff; font-size: 18px; font-weight: 800; margin: 0;">Terminal Locked</h3>
+                </div>
+                <div style="padding: 24px; text-align: center;">
+                    <p style="color: #374151; font-size: 14px; line-height: 1.5; margin: 0 0 6px;">An active shift session is required to process sales.</p>
+                    @if(session('shift_required'))
+                        <p style="color: #b91c1c; font-size: 12px; margin: 0 0 6px;">{{ session('shift_required') }}</p>
+                    @endif
+                    <p style="color: #9ca3af; font-size: 12px; margin: 0 0 20px;">Open the cash drawer to begin selling at this terminal.</p>
+                    <button type="button" onclick="openStartShiftModal()"
+                            style="width: 100%; background: #172554; color: #ffffff; font-weight: 700; padding: 12px 16px; border-radius: 10px; border: none; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;"
+                            onmouseover="this.style.background='#1e3a8a';" onmouseout="this.style.background='#172554';">
+                        <i class="fas fa-rocket"></i>
+                        <span>Start New Shift Session</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endunless
+
+    <!-- Start Shift Modal (opening cash drawer) -->
+    <div id="startShiftModal" style="position: fixed; inset: 0; z-index: 9995; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #ffffff; max-width: 420px; width: 100%; border-radius: 14px; box-shadow: 0 25px 60px rgba(0,0,0,0.45); overflow: hidden;">
+            <div style="background: linear-gradient(to right, #022C22, #013d33); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+                <h4 style="color: #ffffff; font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;"><i class="fas fa-cash-register"></i> Start Shift</h4>
+                <button type="button" onclick="closeStartShiftModal()" style="background: none; border: none; color: #a7f3d0; cursor: pointer; font-size: 16px;"><i class="fas fa-times"></i></button>
+            </div>
+            <form method="POST" action="{{ route('shifts.start.store') }}" style="padding: 20px;">
+                @csrf
+                <input type="hidden" name="redirect_to" value="invoices.create">
+                <div style="font-size: 13px; color: #374151; margin-bottom: 10px;"><span style="font-weight: 600; color: #111827;">Pharmacist:</span> {{ auth()->user()->name }}</div>
+                <label for="starting_cash" style="display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px;">Opening Cash in Drawer</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af;">$</span>
+                    <input type="number" step="0.01" min="0" name="starting_cash" id="starting_cash" value="0.00" required
+                           style="width: 100%; padding: 10px 12px 10px 26px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+                    <button type="button" onclick="closeStartShiftModal()" style="background: #ffffff; color: #374151; border: 1px solid #d1d5db; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Cancel</button>
+                    <button type="submit" style="background: #172554; color: #ffffff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">Start Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- End Shift Modal (closing cash drawer) -->
+    <div id="endShiftModal" style="position: fixed; inset: 0; z-index: 9995; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: #ffffff; max-width: 440px; width: 100%; border-radius: 14px; box-shadow: 0 25px 60px rgba(0,0,0,0.45); overflow: hidden;">
+            <div style="background: linear-gradient(to right, #1e293b, #0f172a); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between;">
+                <h4 style="color: #ffffff; font-size: 15px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px;"><i class="fas fa-lock"></i> End Active Shift</h4>
+                <button type="button" onclick="closeEndShiftModal()" style="background: none; border: none; color: #cbd5e1; cursor: pointer; font-size: 16px;"><i class="fas fa-times"></i></button>
+            </div>
+            <form method="POST" action="{{ route('shifts.end.store') }}" style="padding: 20px;">
+                @csrf
+                @if($activeShift)
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+                        <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px;">
+                            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b;">Pharmacist</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 2px;">{{ optional($activeShift->user)->name ?? auth()->user()->name }}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px;">
+                            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b;">Started</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 2px;">{{ $activeShift->start_time->format('M d, H:i') }}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px;">
+                            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b;">Opening Cash</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 2px;">${{ number_format($activeShift->starting_cash, 2) }}</div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px;">
+                            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b;">Expected Sales</div>
+                            <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-top: 2px;">${{ number_format($activeShift->expected_sales, 2) }}</div>
+                        </div>
+                    </div>
+                @endif
+                <label for="ending_cash" style="display: block; font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 6px;">Closing Cash in Drawer</label>
+                <div style="position: relative;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af;">$</span>
+                    <input type="number" step="0.01" min="0" name="ending_cash" id="ending_cash" required
+                           style="width: 100%; padding: 10px 12px 10px 26px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
+                    <button type="button" onclick="closeEndShiftModal()" style="background: #ffffff; color: #374151; border: 1px solid #d1d5db; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;">Cancel</button>
+                    <button type="submit" style="background: #1e293b; color: #ffffff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;">Close Shift</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @endpush
+
+    @push('scripts')
+    <script>
+        function openStartShiftModal() {
+            var m = document.getElementById('startShiftModal');
+            if (m) { m.style.display = 'flex'; var i = document.getElementById('starting_cash'); if (i) { i.focus(); i.select(); } }
+        }
+        function closeStartShiftModal() {
+            var m = document.getElementById('startShiftModal'); if (m) { m.style.display = 'none'; }
+        }
+        function openEndShiftModal() {
+            var m = document.getElementById('endShiftModal');
+            if (m) { m.style.display = 'flex'; var i = document.getElementById('ending_cash'); if (i) { i.focus(); } }
+        }
+        function closeEndShiftModal() {
+            var m = document.getElementById('endShiftModal'); if (m) { m.style.display = 'none'; }
+        }
+        // Close on backdrop click
+        ['startShiftModal', 'endShiftModal'].forEach(function (id) {
+            var m = document.getElementById(id);
+            if (m) { m.addEventListener('click', function (e) { if (e.target === m) { m.style.display = 'none'; } }); }
+        });
+        // Close on Escape
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { closeStartShiftModal(); closeEndShiftModal(); }
         });
     </script>
     @endpush
