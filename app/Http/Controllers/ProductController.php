@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Batch;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -313,7 +315,9 @@ class ProductController extends Controller
             'alert_quantity',
             'days_on_hand',
             'description',
-            'is_active'
+            'is_active',
+            'warehouse_quantity',
+            'on_shelf_quantity'
         ];
 
         $sampleData = [
@@ -330,7 +334,9 @@ class ProductController extends Controller
                 '50',
                 '30',
                 'Pain relief medication',
-                '1'
+                '1',
+                '60',
+                '40'
             ],
             [
                 'Vitamin C 1000mg',
@@ -345,7 +351,9 @@ class ProductController extends Controller
                 '25',
                 '45',
                 'Vitamin C supplement',
-                '1'
+                '1',
+                '25',
+                '50'
             ]
         ];
 
@@ -604,7 +612,9 @@ class ProductController extends Controller
             9 => 'alert_quantity',
             10 => 'days_on_hand',
             11 => 'description',
-            12 => 'is_active'
+            12 => 'is_active',
+            13 => 'warehouse_quantity',
+            14 => 'on_shelf_quantity'
         ];
 
         $productData = [];
@@ -640,6 +650,28 @@ class ProductController extends Controller
                     'initial_quantity' => 'initial_quantity',
                     'initialquantity' => 'initial_quantity',
                     'quantity' => 'initial_quantity',
+                    'warehouse quantity' => 'warehouse_quantity',
+                    'warehouse_quantity' => 'warehouse_quantity',
+                    'warehousequantity' => 'warehouse_quantity',
+                    'warehouse stock' => 'warehouse_quantity',
+                    'warehouse_stock' => 'warehouse_quantity',
+                    'warehousestock' => 'warehouse_quantity',
+                    'main warehouse' => 'warehouse_quantity',
+                    'main_warehouse' => 'warehouse_quantity',
+                    'on shelf quantity' => 'on_shelf_quantity',
+                    'on-shelf quantity' => 'on_shelf_quantity',
+                    'on_shelf_quantity' => 'on_shelf_quantity',
+                    'onshelfquantity' => 'on_shelf_quantity',
+                    'on shelf stock' => 'on_shelf_quantity',
+                    'on-shelf stock' => 'on_shelf_quantity',
+                    'on_shelf_stock' => 'on_shelf_quantity',
+                    'on_shelf' => 'on_shelf_quantity',
+                    'on shelf' => 'on_shelf_quantity',
+                    'on-shelf' => 'on_shelf_quantity',
+                    'shelf quantity' => 'on_shelf_quantity',
+                    'shelf_quantity' => 'on_shelf_quantity',
+                    'shelf stock' => 'on_shelf_quantity',
+                    'shelf' => 'on_shelf_quantity',
                     'days on hand' => 'days_on_hand',
                     'days_on_hand' => 'days_on_hand',
                     'daysonhand' => 'days_on_hand',
@@ -686,6 +718,41 @@ class ProductController extends Controller
                 // No stock provided: keep the product but start out of stock
                 $productData['initial_quantity'] = 0;
             }
+
+            // Warehouse routing: parse the dedicated warehouse (back stock) and
+            // on-shelf (sellable) quantities. When either column is provided the
+            // row is routed into the multi-warehouse workflow; otherwise the whole
+            // initial quantity is placed on shelf so imported products still
+            // participate in warehouses instead of staying batch-only.
+            $hasWarehouseCol = isset($productData['warehouse_quantity']) && $productData['warehouse_quantity'] !== '';
+            $hasOnShelfCol = isset($productData['on_shelf_quantity']) && $productData['on_shelf_quantity'] !== '';
+
+            if ($hasWarehouseCol) {
+                $productData['warehouse_quantity'] = (int) preg_replace('/[^0-9]/', '', $productData['warehouse_quantity']);
+                if ($productData['warehouse_quantity'] < 0) {
+                    throw new \Exception('Warehouse quantity cannot be negative');
+                }
+            }
+            if ($hasOnShelfCol) {
+                $productData['on_shelf_quantity'] = (int) preg_replace('/[^0-9]/', '', $productData['on_shelf_quantity']);
+                if ($productData['on_shelf_quantity'] < 0) {
+                    throw new \Exception('On-shelf quantity cannot be negative');
+                }
+            }
+
+            if ($hasWarehouseCol || $hasOnShelfCol) {
+                $warehouseQty = $hasWarehouseCol ? $productData['warehouse_quantity'] : 0;
+                $onShelfQty = $hasOnShelfCol ? $productData['on_shelf_quantity'] : 0;
+                // The split columns are the source of truth for the batch quantity.
+                $productData['initial_quantity'] = $warehouseQty + $onShelfQty;
+            } else {
+                // Legacy single-quantity import: route everything to On Shelf.
+                $warehouseQty = 0;
+                $onShelfQty = $productData['initial_quantity'];
+            }
+
+            $productData['warehouse_quantity'] = $warehouseQty;
+            $productData['on_shelf_quantity'] = $onShelfQty;
 
             if (isset($productData['cost_price'])) {
                 $productData['cost_price'] = (float) preg_replace('/[^0-9.]/', '', $productData['cost_price']);
@@ -858,7 +925,7 @@ class ProductController extends Controller
                 'new_total_quantity' => $existingBatch->quantity
             ]);
 
-            return $existingBatch;
+            $batch = $existingBatch;
         } else {
             // Create new batch
             $batch = Batch::create([
@@ -876,8 +943,81 @@ class ProductController extends Controller
                 'batch_number' => $productData['batch_number'],
                 'quantity' => $productData['initial_quantity']
             ]);
-
-            return $batch;
         }
+
+        // Route the imported quantities into their respective inventory locations
+        // (On Shelf and/or the back-stock warehouse), keeping warehouse stock in
+        // sync with the batch so the product participates in the multi-warehouse
+        // workflow rather than falling back to batch-only tracking.
+        $this->routeImportedStockToWarehouses($product, $batch, $productData);
+
+        return $batch;
+    }
+
+    /**
+     * Route imported quantities for a batch into warehouse stock records.
+     *
+     * on_shelf_quantity is placed in the sellable On Shelf warehouse and
+     * warehouse_quantity in the non-sellable Main (back-stock) warehouse. When no
+     * tenant context can be resolved (e.g. a super-admin without a tenant), the
+     * stock is left as batch-only and no warehouse records are created.
+     */
+    private function routeImportedStockToWarehouses(Product $product, Batch $batch, array $productData): void
+    {
+        $onShelfQty = (int) ($productData['on_shelf_quantity'] ?? 0);
+        $warehouseQty = (int) ($productData['warehouse_quantity'] ?? 0);
+
+        if ($onShelfQty <= 0 && $warehouseQty <= 0) {
+            return;
+        }
+
+        $user = auth()->user();
+        $tenantId = $user?->tenant_id
+            ?? (app()->bound('current_tenant') ? app('current_tenant')?->id : null)
+            ?? $product->tenant_id;
+        $branchId = $user?->branch_id ?? null;
+
+        if (! $tenantId) {
+            // No tenant context: keep batch-only tracking.
+            return;
+        }
+
+        // Ensure the standard system warehouses exist for this tenant/branch.
+        Warehouse::ensureDefaultSystemWarehouses($tenantId, $branchId);
+
+        if ($onShelfQty > 0) {
+            $shelf = Warehouse::getOrCreateSystemWarehouse($tenantId, $branchId, Warehouse::TYPE_ON_SHELF);
+            $this->addWarehouseStock($tenantId, $shelf->id, $product->id, $batch->id, $onShelfQty);
+        }
+
+        if ($warehouseQty > 0) {
+            $main = Warehouse::getOrCreateSystemWarehouse($tenantId, $branchId, Warehouse::TYPE_MAIN);
+            $this->addWarehouseStock($tenantId, $main->id, $product->id, $batch->id, $warehouseQty);
+        }
+
+        Log::info('Imported stock routed to warehouses', [
+            'product_id' => $product->id,
+            'batch_id' => $batch->id,
+            'on_shelf_quantity' => $onShelfQty,
+            'warehouse_quantity' => $warehouseQty,
+            'tenant_id' => $tenantId,
+            'branch_id' => $branchId,
+        ]);
+    }
+
+    /**
+     * Add (accumulate) quantity to a warehouse stock record for a product+batch.
+     */
+    private function addWarehouseStock(int $tenantId, int $warehouseId, int $productId, int $batchId, int $quantity): void
+    {
+        $stock = WarehouseStock::firstOrNew([
+            'tenant_id' => $tenantId,
+            'warehouse_id' => $warehouseId,
+            'product_id' => $productId,
+            'batch_id' => $batchId,
+        ]);
+
+        $stock->quantity = ($stock->quantity ?? 0) + $quantity;
+        $stock->save();
     }
 }

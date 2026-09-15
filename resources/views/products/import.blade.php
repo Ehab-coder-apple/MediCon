@@ -59,7 +59,8 @@
                             <li>• <strong>Maximum file size:</strong> 2MB</li>
                             <li>• <strong>Separators:</strong> Comma (,), Semicolon (;), Tab, or Pipe (|) - auto-detected</li>
                             <li>• <strong>Required columns:</strong> name, category, manufacturer, code, batch_number, expiry_date, initial_quantity, cost_price, selling_price</li>
-                            <li>• <strong>Optional columns:</strong> alert_quantity, days_on_hand, description, is_active</li>
+                            <li>• <strong>Optional columns:</strong> alert_quantity, days_on_hand, description, is_active, warehouse_quantity, on_shelf_quantity</li>
+                            <li>• <strong>Stock routing:</strong> Use <strong>warehouse_quantity</strong> (back-stock) and <strong>on_shelf_quantity</strong> (sellable) to place stock in each location. If both are given, initial_quantity is their total. If neither is given, the whole initial_quantity is placed On Shelf.</li>
                             <li>• <strong>Date format:</strong> YYYY-MM-DD (e.g., 2024-12-31) or DD/MM/YYYY</li>
                             <li>• <strong>Numbers:</strong> Use decimal point (.) for prices, no currency symbols</li>
                             <li>• <strong>Download template:</strong> Use the template above for correct format</li>
@@ -181,6 +182,8 @@
                                 <div><strong>days_on_hand:</strong> Days on hand (auto-calculated)</div>
                                 <div><strong>description:</strong> Product description</div>
                                 <div><strong>is_active:</strong> 1/true/yes for active</div>
+                                <div><strong>warehouse_quantity:</strong> Back-stock qty (Main Warehouse)</div>
+                                <div><strong>on_shelf_quantity:</strong> Sellable qty (On Shelf)</div>
                             </div>
                         </div>
 
