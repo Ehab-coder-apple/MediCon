@@ -174,19 +174,23 @@
                         </button>
                         <div x-show="open" class="bg-slate-700 bg-opacity-50">
                             <!-- Products -->
+                            @if(Route::has($routePrefix . 'products.index'))
                             <a href="{{ route($routePrefix . 'products.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'products.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
                                 </svg>
                                 Products
                             </a>
+                            @endif
                             <!-- Batches -->
+                            @if(Route::has($routePrefix . 'batches.index'))
                             <a href="{{ route($routePrefix . 'batches.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'batches.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
                                 </svg>
                                 Batches
                             </a>
+                            @endif
                             <!-- Locations -->
                             <a href="{{ route('admin.locations.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.locations.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -234,12 +238,14 @@
                                 Sales Management
                             </a>
                             <!-- Customers -->
+                            @if(Route::has($routePrefix . 'customers.index'))
                             <a href="{{ route($routePrefix . 'customers.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'customers.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
                                 </svg>
                                 Customers
                             </a>
+                            @endif
                             <!-- Invoices -->
                             <a href="{{ route('invoices.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('invoices.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -249,6 +255,7 @@
                                 Invoices
                             </a>
                             <!-- Sales Returns -->
+                            @if(Route::has($routePrefix . 'sales-returns.index'))
                             <a href="{{ route($routePrefix . 'sales-returns.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'sales-returns.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 6H6.28l-.31-1.243A1 1 0 005 4H3z"/>
@@ -256,6 +263,7 @@
                                 </svg>
                                 Sales Returns
                             </a>
+                            @endif
                         </div>
                     </div>
 
@@ -274,12 +282,14 @@
                         </button>
                         <div x-show="open" class="bg-slate-700 bg-opacity-50">
                             <!-- Suppliers -->
+                            @if(Route::has($routePrefix . 'suppliers.index'))
                             <a href="{{ route($routePrefix . 'suppliers.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'suppliers.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>
                                 </svg>
                                 Suppliers
                             </a>
+                            @endif
                             <!-- Stock Receiving -->
                             <a href="{{ route('admin.stock-receiving.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.stock-receiving.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -288,19 +298,23 @@
                                 Stock Receiving
                             </a>
                             <!-- Purchase Orders -->
+                            @if(Route::has($routePrefix . 'purchases.index'))
                             <a href="{{ route($routePrefix . 'purchases.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'purchases.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
                                 </svg>
                                 Purchase Orders
                             </a>
+                            @endif
                             <!-- Purchase Returns -->
+                            @if(Route::has($routePrefix . 'purchase-returns.index'))
                             <a href="{{ route($routePrefix . 'purchase-returns.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs($routePrefix . 'purchase-returns.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 110 14H9.828a1 1 0 110-2H11a5 5 0 100-10H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4z" clip-rule="evenodd"/>
                                 </svg>
                                 Purchase Returns
                             </a>
+                            @endif
                         </div>
                     </div>
 
