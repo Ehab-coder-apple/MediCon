@@ -234,8 +234,8 @@
                                     <tr>
                                         <td class="px-3 py-2.5 font-medium text-slate-900">{{ $sale->invoice_number }}</td>
                                         <td class="px-3 py-2.5 text-slate-700">{{ $sale->customer?->name ?? 'Walk-in Customer' }}</td>
-                                        <td class="px-3 py-2.5 text-slate-500">{{ $sale->sale_date?->format('M j, Y') }}</td>
-                                        <td class="px-3 py-2.5 text-right font-semibold text-slate-900">{{ $currencySymbol }}{{ number_format((float) $sale->total_price, 2) }}</td>
+                                        <td class="px-3 py-2.5 text-slate-500">{{ $sale->invoice_date?->format('M j, Y') }}</td>
+                                        <td class="px-3 py-2.5 text-right font-semibold text-slate-900">{{ $currencySymbol }}{{ number_format((float) $sale->total_amount, 2) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

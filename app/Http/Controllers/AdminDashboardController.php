@@ -6,10 +6,10 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Batch;
 use App\Models\Product;
-use App\Models\Sale;
 use App\Models\Invoice;
 use App\Models\Purchase;
 use App\Models\SystemSetting;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -19,16 +19,32 @@ class AdminDashboardController extends Controller
     {
         $currencySymbol = SystemSetting::get('currency_symbol', '$');
 
+        // The POS checkout (InvoiceController::store) only ever writes to the
+        // invoices/invoice_items tables - it never creates a Sale/SaleItem record.
+        // The dashboard used to aggregate from Sale, which stays permanently empty
+        // for real POS transactions, so every KPI and the chart showed $0. Source
+        // all figures from Invoice instead, scoped to the current tenant, and treat
+        // any non-cancelled sale invoice as a completed sale (stock is already
+        // deducted at checkout regardless of payment/collection status).
+        $tenantId = auth()->user()?->tenant_id;
+        if (!$tenantId) {
+            $tenantId = Tenant::where('is_active', true)->first()?->id;
+        }
+
+        $completedInvoices = fn () => Invoice::where('tenant_id', $tenantId)
+            ->where('type', 'sale')
+            ->where('status', '!=', 'cancelled');
+
         // Primary business KPIs (reusing existing reporting rules)
-        $todaysSales = (float) Sale::where('status', 'completed')
-            ->whereDate('sale_date', today())
-            ->sum('total_price');
+        $todaysSales = (float) $completedInvoices()
+            ->whereDate('invoice_date', today())
+            ->sum('total_amount');
 
-        $todaysProfit = $this->getProfitForRange(today()->startOfDay(), today()->endOfDay());
+        $todaysProfit = $this->getProfitForRange($tenantId, today()->startOfDay(), today()->endOfDay());
 
-        $monthlySales = (float) Sale::where('status', 'completed')
-            ->whereBetween('sale_date', [now()->startOfMonth(), now()->endOfMonth()])
-            ->sum('total_price');
+        $monthlySales = (float) $completedInvoices()
+            ->whereBetween('invoice_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->sum('total_amount');
 
         $inventoryValue = (float) Batch::where('quantity', '>', 0)
             ->selectRaw('COALESCE(SUM(cost_price * quantity), 0) as value')
@@ -38,7 +54,7 @@ class AdminDashboardController extends Controller
         $lowStockProducts = $this->getLowStockProductsCount();
         $outOfStockProducts = $this->getOutOfStockProductsCount();
         $expiringSoonProducts = $this->getTotalNearlyExpiredProducts();
-        $receivables = (float) Invoice::where('balance_due', '>', 0)->sum('balance_due');
+        $receivables = (float) Invoice::where('tenant_id', $tenantId)->where('balance_due', '>', 0)->sum('balance_due');
         $payables = (float) Purchase::where('payment_status', '!=', 'paid')->sum('balance_due');
 
         // Inventory health breakdown (non-overlapping counts)
@@ -53,24 +69,26 @@ class AdminDashboardController extends Controller
         ];
 
         // Sales overview series (Today / 7 Days / 30 Days / This Year)
-        $salesChart = $this->buildSalesSeries();
+        $salesChart = $this->buildSalesSeries($tenantId);
 
         // Top selling products for the current month
-        $topProducts = DB::table('sale_items')
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('products', 'sale_items.product_id', '=', 'products.id')
-            ->where('sales.status', 'completed')
-            ->whereBetween('sales.sale_date', [now()->startOfMonth(), now()->endOfMonth()])
-            ->select('products.name', 'products.code', DB::raw('SUM(sale_items.quantity) as total_sold'), DB::raw('SUM(sale_items.total_price) as total_revenue'))
+        $topProducts = DB::table('invoice_items')
+            ->join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
+            ->join('products', 'invoice_items.product_id', '=', 'products.id')
+            ->where('invoices.tenant_id', $tenantId)
+            ->where('invoices.type', 'sale')
+            ->where('invoices.status', '!=', 'cancelled')
+            ->whereBetween('invoices.invoice_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->select('products.name', 'products.code', DB::raw('SUM(invoice_items.quantity) as total_sold'), DB::raw('SUM(invoice_items.total_price) as total_revenue'))
             ->groupBy('products.id', 'products.name', 'products.code')
             ->orderBy('total_sold', 'desc')
             ->limit(5)
             ->get();
 
         // Recent completed sales
-        $recentSales = Sale::with('customer')
-            ->where('status', 'completed')
-            ->orderBy('sale_date', 'desc')
+        $recentSales = $completedInvoices()
+            ->with('customer')
+            ->orderBy('invoice_date', 'desc')
             ->orderBy('id', 'desc')
             ->limit(6)
             ->get();
@@ -96,16 +114,18 @@ class AdminDashboardController extends Controller
     /**
      * Calculate gross profit on goods sold within a date range.
      * Uses the same rule as ProfitAnalysisReportExport: (unit_price - product cost_price) * quantity
-     * over completed sales.
+     * over completed sale invoices.
      */
-    private function getProfitForRange($start, $end): float
+    private function getProfitForRange(?int $tenantId, $start, $end): float
     {
-        return (float) DB::table('sale_items')
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('products', 'sale_items.product_id', '=', 'products.id')
-            ->where('sales.status', 'completed')
-            ->whereBetween('sales.sale_date', [$start, $end])
-            ->selectRaw('COALESCE(SUM((sale_items.unit_price - products.cost_price) * sale_items.quantity), 0) as profit')
+        return (float) DB::table('invoice_items')
+            ->join('invoices', 'invoice_items.invoice_id', '=', 'invoices.id')
+            ->join('products', 'invoice_items.product_id', '=', 'products.id')
+            ->where('invoices.tenant_id', $tenantId)
+            ->where('invoices.type', 'sale')
+            ->where('invoices.status', '!=', 'cancelled')
+            ->whereBetween('invoices.invoice_date', [$start, $end])
+            ->selectRaw('COALESCE(SUM((invoice_items.unit_price - products.cost_price) * invoice_items.quantity), 0) as profit')
             ->value('profit');
     }
 
@@ -113,11 +133,13 @@ class AdminDashboardController extends Controller
      * Build the Sales Overview series for the four dashboard filters.
      * Buckets are computed in PHP to stay database-agnostic.
      */
-    private function buildSalesSeries(): array
+    private function buildSalesSeries(?int $tenantId): array
     {
-        $yearSales = Sale::where('status', 'completed')
-            ->whereBetween('sale_date', [now()->startOfYear(), now()->endOfYear()])
-            ->get(['sale_date', 'created_at', 'total_price']);
+        $yearSales = Invoice::where('tenant_id', $tenantId)
+            ->where('type', 'sale')
+            ->where('status', '!=', 'cancelled')
+            ->whereBetween('invoice_date', [now()->startOfYear(), now()->endOfYear()])
+            ->get(['invoice_date', 'created_at', 'total_amount']);
 
         // Today - hourly buckets (by created_at time of sale)
         $todayLabels = [];
@@ -127,17 +149,17 @@ class AdminDashboardController extends Controller
         }
         foreach ($yearSales as $sale) {
             if ($sale->created_at && $sale->created_at->isToday()) {
-                $todayData[(int) $sale->created_at->format('G')] += (float) $sale->total_price;
+                $todayData[(int) $sale->created_at->format('G')] += (float) $sale->total_amount;
             }
         }
 
-        // 7 days and 30 days - daily buckets by sale_date
+        // 7 days and 30 days - daily buckets by invoice_date
         $sevenLabels = $sevenData = $thirtyLabels = $thirtyData = [];
         $dailyTotals = [];
         foreach ($yearSales as $sale) {
-            $key = $sale->sale_date?->format('Y-m-d');
+            $key = $sale->invoice_date?->format('Y-m-d');
             if ($key) {
-                $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (float) $sale->total_price;
+                $dailyTotals[$key] = ($dailyTotals[$key] ?? 0) + (float) $sale->total_amount;
             }
         }
         foreach ([7 => ['sevenLabels', 'sevenData'], 30 => ['thirtyLabels', 'thirtyData']] as $days => $vars) {
@@ -149,12 +171,12 @@ class AdminDashboardController extends Controller
             }
         }
 
-        // This year - monthly buckets by sale_date
+        // This year - monthly buckets by invoice_date
         $yearLabels = $yearData = [];
         $monthlyTotals = array_fill(1, 12, 0.0);
         foreach ($yearSales as $sale) {
-            if ($sale->sale_date) {
-                $monthlyTotals[(int) $sale->sale_date->format('n')] += (float) $sale->total_price;
+            if ($sale->invoice_date) {
+                $monthlyTotals[(int) $sale->invoice_date->format('n')] += (float) $sale->total_amount;
             }
         }
         for ($m = 1; $m <= 12; $m++) {
@@ -219,7 +241,7 @@ class AdminDashboardController extends Controller
 
         $currentUser = auth()->user();
 
-        $query = User::with('role');
+        $query = User::with(['role', 'branch']);
 
         // For pharmacy/tenant admins, only show users that belong to their tenant
         // and hide system-level/super admin accounts (e.g. Program Owner)

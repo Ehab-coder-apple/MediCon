@@ -121,6 +121,13 @@ class ProductController extends Controller
             $validated['days_on_hand'] = max($validated['alert_quantity'] * 2, 30);
         }
 
+        // The Product model has no automatic tenant scoping, so tenant_id must be
+        // set explicitly here. Without it, products created via this form end up
+        // with a null tenant_id and never appear in tenant-scoped queries (e.g. the
+        // POS product catalog), showing "0 products available" despite existing.
+        $validated['tenant_id'] = auth()->user()?->tenant_id
+            ?? (app()->bound('current_tenant') ? app('current_tenant')?->id : null);
+
         $product = Product::create($validated);
 
         // Log the product creation with DOH information
@@ -877,8 +884,16 @@ class ProductController extends Controller
 
                 return ['action' => 'updated', 'product' => $existingProduct];
             } else {
-                // Create new product
+                // Create new product. tenant_id must be set explicitly since Product
+                // has no automatic tenant scoping; without it, imported products end
+                // up with a null tenant_id and never appear in tenant-scoped queries
+                // (e.g. the POS product catalog), showing "0 products available".
+                $user = auth()->user();
+                $tenantId = $user?->tenant_id
+                    ?? (app()->bound('current_tenant') ? app('current_tenant')?->id : null);
+
                 $product = Product::create([
+                    'tenant_id' => $tenantId,
                     'name' => $productData['name'],
                     'category' => $productData['category'],
                     'manufacturer' => $productData['manufacturer'],

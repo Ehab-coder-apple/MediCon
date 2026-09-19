@@ -216,6 +216,7 @@ Route::middleware([
         Route::get('/users/{user}/edit', [TenantRegistrationController::class, 'showEditUser'])->name('users.edit');
         Route::put('/users/{user}', [TenantRegistrationController::class, 'updateUser'])->name('users.update');
         Route::delete('/users/{user}', [TenantRegistrationController::class, 'deleteUser'])->name('users.destroy');
+        Route::patch('/users/{user}/toggle-active', [TenantRegistrationController::class, 'toggleUserActive'])->name('users.toggle-active');
 
         Route::resource('products', ProductController::class);
         Route::get('products-import', [ProductController::class, 'showImport'])->name('products.import');

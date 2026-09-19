@@ -599,6 +599,41 @@ class TenantRegistrationController extends Controller
     /**
      * Delete user (by admin)
      */
+    /**
+     * Toggle a user's active/inactive status (by admin).
+     */
+    public function toggleUserActive(User $user): RedirectResponse
+    {
+        $currentUser = auth()->user();
+
+        // Only allow admin users
+        if (!$currentUser || $currentUser->role->name !== 'admin') {
+            abort(403, 'Only administrators can change a user\'s status.');
+        }
+
+        // Determine if current user is a super admin (has no tenant or is explicitly marked as super admin)
+        $isCurrentUserSuperAdmin = $currentUser->is_super_admin || $currentUser->tenant_id === null;
+
+        // Determine if target user is a system-level user (has no tenant)
+        $isTargetUserSystemLevel = $user->tenant_id === null;
+
+        if (!$isCurrentUserSuperAdmin && !$isTargetUserSystemLevel && $user->tenant_id !== $currentUser->tenant_id) {
+            abort(403, 'You cannot change the status of users from other tenants.');
+        }
+
+        // Prevent deactivating the current user
+        if ($user->id === $currentUser->id) {
+            return back()->withErrors(['error' => 'You cannot change the status of your own account.']);
+        }
+
+        $user->update(['is_active' => !$user->is_active]);
+
+        $statusText = $user->is_active ? 'activated' : 'deactivated';
+
+        return redirect()->route('admin.users')
+                       ->with('success', "User {$user->name} {$statusText} successfully.");
+    }
+
     public function deleteUser(User $user): RedirectResponse
     {
         $currentUser = auth()->user();
