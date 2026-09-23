@@ -72,6 +72,14 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER);
         });
 
+        // Personnel tools (Users Management + Attendance logs) are shared
+        // between the tenant admin and the HQ HR Manager global role, unlike
+        // the rest of the /admin/* routes (branches, products, AI, settings,
+        // etc.) which stay admin-only.
+        Gate::define('access-personnel-tools', function (User $user) {
+            return $user->hasRole('admin') || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER);
+        });
+
         Gate::define('manage-inventory', function (User $user) {
             return $user->hasPermission('manage_inventory');
         });

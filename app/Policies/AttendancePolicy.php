@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Attendance;
+use App\Models\Role;
 use App\Models\User;
 
 class AttendancePolicy
@@ -12,8 +13,12 @@ class AttendancePolicy
      */
     public function viewAny(User $user): bool
     {
-        // Only admins can view attendance records
-        return $user->role?->name === 'admin' || $user->is_super_admin;
+        // Admins and HQ HR Managers can view attendance records (HQ HR
+        // Manager is a dedicated global role for global employee oversight,
+        // see Role::HQ_HR_MANAGER's default permission set).
+        return $user->role?->name === 'admin'
+            || $user->hasRole(Role::HQ_HR_MANAGER)
+            || $user->is_super_admin;
     }
 
     /**
@@ -26,9 +31,9 @@ class AttendancePolicy
             return true;
         }
 
-        // Admin can view attendance from their tenant
-        if ($user->role?->name === 'admin') {
-            // If attendance has no tenant_id, allow admin to view it
+        // Admin or HQ HR Manager can view attendance from their tenant
+        if ($user->role?->name === 'admin' || $user->hasRole(Role::HQ_HR_MANAGER)) {
+            // If attendance has no tenant_id, allow it to be viewed
             if (!$attendance->tenant_id) {
                 return true;
             }

@@ -222,8 +222,9 @@ class TenantRegistrationController extends Controller
     {
         $user = auth()->user();
 
-        // Only allow admin users
-        if (!$user || $user->role->name !== 'admin') {
+        // Admins and HQ HR Managers (global employee management role) can
+        // create users.
+        if (!$user || !in_array($user->role->name, ['admin', Role::HQ_HR_MANAGER], true)) {
             abort(403, 'Only administrators can create users.');
         }
 
@@ -300,8 +301,9 @@ class TenantRegistrationController extends Controller
     {
         $user = auth()->user();
         
-        // Only allow admin users
-        if (!$user || $user->role->name !== 'admin') {
+        // Admins and HQ HR Managers (global employee management role) can
+        // create users.
+        if (!$user || !in_array($user->role->name, ['admin', Role::HQ_HR_MANAGER], true)) {
             abort(403, 'Only administrators can create users.');
         }
 
@@ -399,8 +401,9 @@ class TenantRegistrationController extends Controller
     {
         $currentUser = auth()->user();
 
-        // Only allow admin users
-        if (!$currentUser || $currentUser->role->name !== 'admin') {
+        // Admins and HQ HR Managers (global employee management role) can
+        // edit users.
+        if (!$currentUser || !in_array($currentUser->role->name, ['admin', Role::HQ_HR_MANAGER], true)) {
             abort(403, 'Only administrators can edit users.');
         }
 
@@ -493,8 +496,9 @@ class TenantRegistrationController extends Controller
     {
         $currentUser = auth()->user();
 
-        // Only allow admin users
-        if (!$currentUser || $currentUser->role->name !== 'admin') {
+        // Admins and HQ HR Managers (global employee management role) can
+        // update users.
+        if (!$currentUser || !in_array($currentUser->role->name, ['admin', Role::HQ_HR_MANAGER], true)) {
             abort(403, 'Only administrators can update users.');
         }
 
@@ -624,8 +628,9 @@ class TenantRegistrationController extends Controller
     {
         $currentUser = auth()->user();
 
-        // Only allow admin users
-        if (!$currentUser || $currentUser->role->name !== 'admin') {
+        // Admins and HQ HR Managers (global employee management role) can
+        // change a user's active status.
+        if (!$currentUser || !in_array($currentUser->role->name, ['admin', Role::HQ_HR_MANAGER], true)) {
             abort(403, 'Only administrators can change a user\'s status.');
         }
 
@@ -656,8 +661,9 @@ class TenantRegistrationController extends Controller
     {
         $currentUser = auth()->user();
 
-        // Only allow admin users
-        if (!$currentUser || $currentUser->role->name !== 'admin') {
+        // Admins and HQ HR Managers (global employee management role) can
+        // delete users.
+        if (!$currentUser || !in_array($currentUser->role->name, ['admin', Role::HQ_HR_MANAGER], true)) {
             abort(403, 'Only administrators can delete users.');
         }
 

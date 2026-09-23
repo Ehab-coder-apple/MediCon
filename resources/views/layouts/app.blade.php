@@ -159,6 +159,11 @@
                         Dashboard
                     </a>
 
+                    {{-- Inventory / Sales / Purchase are branch-operations sections and are
+                         entirely hidden for the HQ HR Manager global role, which has no
+                         operational involvement in stock or sales - only personnel tools
+                         (Users Management + Attendance, see Section 6 below). --}}
+                    @unless($user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
                     <!-- SECTION 2: Inventory -->
                     <div x-data="{ open: {{ request()->routeIs($routePrefix . 'products.*', $routePrefix . 'batches.*', 'admin.locations.*', 'admin.categories.*', 'admin.subcategories.*') ? 'true' : 'false' }} }" class="mt-2">
                         <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
@@ -317,6 +322,7 @@
                             @endif
                         </div>
                     </div>
+                    @endunless
 
                     @if(auth()->user()->hasRole('admin'))
                     <!-- SECTION 5: Finance -->
@@ -342,7 +348,13 @@
                             </a>
                         </div>
                     </div>
+                    @endif
 
+                    {{-- Human Resources: Users Management + Attendance are shared between
+                         admin and the HQ HR Manager global role (dedicated global employee
+                         management role, see Role::HQ_HR_MANAGER). Activity Logs and Leave
+                         Requests stay admin-only, individually gated below. --}}
+                    @if($user->hasRole('admin') || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
                     <!-- SECTION 6: Human Resources -->
                     <div x-data="{ open: {{ request()->routeIs('admin.users', 'admin.activity-logs.*', 'admin.attendance.*', 'admin.leaves.*') ? 'true' : 'false' }} }" class="mt-2">
                         <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
@@ -371,6 +383,7 @@
                                 </svg>
                                 Attendance
                             </a>
+                            @if($user->hasRole('admin'))
                             <!-- Activity Logs -->
                             <a href="{{ route('admin.activity-logs.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.activity-logs.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                                 <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -386,9 +399,12 @@
                                 </svg>
                                 Leave Requests
                             </a>
+                            @endif
                         </div>
                     </div>
+                    @endif
 
+                    @if(auth()->user()->hasRole('admin'))
                     <!-- SECTION 7: AI & Document Processing -->
                     <div x-data="{ open: {{ request()->routeIs('admin.ai.*') ? 'true' : 'false' }} }" class="mt-2">
                         <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">

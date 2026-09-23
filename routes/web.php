@@ -233,9 +233,12 @@ Route::middleware([
     Route::get('/shift/end', [ShiftController::class, 'showEnd'])->name('shifts.end');
     Route::post('/shift/end', [ShiftController::class, 'end'])->name('shifts.end.store');
 
-    // Admin routes
-    Route::middleware(['can:access-admin-dashboard'])->prefix('admin')->name('admin.')->group(function () {
-        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+    // Personnel tools (Users Management + Attendance logs): shared by admin
+    // and the HQ HR Manager global role. Kept as separate route groups
+    // (rather than inside the admin-only group below) so HQ HR Manager
+    // isn't also granted the rest of /admin/* (branches, products, AI,
+    // settings, etc.), which stays admin-only.
+    Route::middleware(['can:access-personnel-tools'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', [AdminDashboardController::class, 'users'])->name('users');
 
         // Admin User Management Routes
@@ -245,6 +248,18 @@ Route::middleware([
         Route::put('/users/{user}', [TenantRegistrationController::class, 'updateUser'])->name('users.update');
         Route::delete('/users/{user}', [TenantRegistrationController::class, 'deleteUser'])->name('users.destroy');
         Route::patch('/users/{user}/toggle-active', [TenantRegistrationController::class, 'toggleUserActive'])->name('users.toggle-active');
+
+        // Attendance Management Routes
+        Route::prefix('attendance')->name('attendance.')->group(function () {
+            Route::get('/', [App\Http\Controllers\AttendanceController::class, 'index'])->name('index');
+            Route::get('/{attendance}', [App\Http\Controllers\AttendanceController::class, 'show'])->name('show');
+            Route::get('/export/csv', [App\Http\Controllers\AttendanceController::class, 'export'])->name('export');
+            Route::get('/statistics/view', [App\Http\Controllers\AttendanceController::class, 'statistics'])->name('statistics');
+        });
+    });
+
+    Route::middleware(['can:access-admin-dashboard'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         Route::resource('products', ProductController::class);
         Route::get('products-import', [ProductController::class, 'showImport'])->name('products.import');
@@ -299,14 +314,6 @@ Route::middleware([
         Route::get('/products/{product}/quick-add-stock', [StockReceivingController::class, 'quickAdd'])->name('stock-receiving.quick-add');
         Route::post('/products/{product}/quick-add-stock', [StockReceivingController::class, 'processQuickAdd'])->name('stock-receiving.process-quick-add');
         Route::get('/api/products/{product}/details', [StockReceivingController::class, 'getProductDetails'])->name('api.products.details');
-
-        // Attendance Management Routes
-        Route::prefix('attendance')->name('attendance.')->group(function () {
-            Route::get('/', [App\Http\Controllers\AttendanceController::class, 'index'])->name('index');
-            Route::get('/{attendance}', [App\Http\Controllers\AttendanceController::class, 'show'])->name('show');
-            Route::get('/export/csv', [App\Http\Controllers\AttendanceController::class, 'export'])->name('export');
-            Route::get('/statistics/view', [App\Http\Controllers\AttendanceController::class, 'statistics'])->name('statistics');
-        });
 
         // Leave Management Routes
         Route::prefix('leaves')->name('leaves.')->group(function () {
