@@ -29,7 +29,7 @@ class BranchManagementController extends Controller
             $tenantId = $tenant->id;
         }
 
-        $query = Branch::where('tenant_id', $tenantId);
+        $query = Branch::with('parent:id,name')->where('tenant_id', $tenantId);
 
         // Filter by status
         if ($request->filled('status')) {

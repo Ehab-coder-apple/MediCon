@@ -71,6 +71,26 @@
                     </span>
                 </div>
 
+                {{-- Branch Type badge: slate for HQ (corporate), green for Retail
+                     Pharmacy. Retail branches linked to an HQ also show the parent
+                     corporate branch name so the hierarchy is visible at a glance. --}}
+                <div class="flex flex-wrap items-center gap-2 mb-4">
+                    @if($branch->branch_type === \App\Models\Branch::TYPE_HQ)
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-slate-200 text-slate-800">
+                            🏢 HQ
+                        </span>
+                    @else
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800">
+                            🏪 Retail Pharmacy
+                        </span>
+                        @if($branch->parent)
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                ↳ {{ $branch->parent->name }}
+                            </span>
+                        @endif
+                    @endif
+                </div>
+
                 <div class="space-y-3 mb-6 text-sm text-gray-700 bg-gray-50 p-4 rounded-lg">
                     <p class="flex items-center">
                         <span class="font-semibold text-gray-900 w-24">📍 City:</span>
