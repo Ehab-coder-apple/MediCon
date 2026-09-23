@@ -521,6 +521,24 @@
                     </div>
                     @endif
 
+                    @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER) || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
+                    <!-- SECTION 8b: HQ Corporate Chain -->
+                    <div class="mt-2">
+                        @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER))
+                        <a href="{{ route('hq-inventory.dashboard') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-inventory.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                            <i class="fa-solid fa-warehouse w-5 mr-3 text-center"></i>
+                            HQ Inventory Dashboard
+                        </a>
+                        @endif
+                        @if($user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
+                        <a href="{{ route('hq-hr.dashboard') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-hr.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                            <i class="fa-solid fa-people-arrows w-5 mr-3 text-center"></i>
+                            Branch Allocations (HR)
+                        </a>
+                        @endif
+                    </div>
+                    @endif
+
                     <!-- SECTION 9: Account -->
                     <div class="mt-4 border-t border-slate-700 pt-4">
                         <form method="POST" action="{{ route('logout') }}">

@@ -119,7 +119,10 @@ class SaleItem extends Model
         $tenantId = $user?->tenant_id
             ?? $product->tenant_id
             ?? (app()->bound('current_tenant') ? app('current_tenant')?->id : null);
-        $branchId = $user?->branch_id ?? null;
+        // Route through the branch context switchboard rather than reading
+        // branch_id directly, so a temporarily floated worker's sale is
+        // deducted from the branch they're actually working at.
+        $branchId = $user ? \App\Services\BranchContextService::getActiveUserBranchId($user) : null;
 
         if (! $tenantId) {
             // No multi-tenant context detected; fall back to legacy behavior.
@@ -269,7 +272,10 @@ class SaleItem extends Model
         $tenantId = $user?->tenant_id
             ?? $product->tenant_id
             ?? (app()->bound('current_tenant') ? app('current_tenant')?->id : null);
-        $branchId = $user?->branch_id ?? null;
+        // Route through the branch context switchboard rather than reading
+        // branch_id directly, so restored stock lands back in the branch
+        // the floated worker actually sold it from.
+        $branchId = $user ? \App\Services\BranchContextService::getActiveUserBranchId($user) : null;
 
         if (! $tenantId) {
             $this->restoreInventoryLegacy();

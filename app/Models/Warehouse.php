@@ -23,6 +23,10 @@ class Warehouse extends Model
     public const TYPE_RETURNS = 'returns';
     public const TYPE_CUSTOM = 'custom';
 
+    // Corporate chain: a single Central warehouse per HQ branch that feeds
+    // stock down into each retail branch's Local warehouses.
+    public const TYPE_HQ_MAIN = 'hq_main';
+
     public const SYSTEM_TYPES = [
         self::TYPE_MAIN,
         self::TYPE_ON_SHELF,
@@ -30,6 +34,24 @@ class Warehouse extends Model
         self::TYPE_EXPIRED,
         self::TYPE_DAMAGED,
         self::TYPE_RETURNS,
+    ];
+
+    /**
+     * Central warehouse types: restricted to HQ branches. Represents the
+     * 'HQ Main Warehouse'.
+     */
+    public const CENTRAL_TYPES = [
+        self::TYPE_HQ_MAIN,
+    ];
+
+    /**
+     * Local warehouse types: restricted to RETAIL_PHARMACY branches.
+     * TYPE_MAIN is the branch's 'Backroom Warehouse' and TYPE_ON_SHELF is
+     * its 'Dispensing Shelf'.
+     */
+    public const LOCAL_TYPES = [
+        self::TYPE_MAIN,
+        self::TYPE_ON_SHELF,
     ];
 
     protected $fillable = [
@@ -112,6 +134,10 @@ class Warehouse extends Model
                 'name' => 'Returns Warehouse',
                 'is_sellable' => false,
             ],
+            self::TYPE_HQ_MAIN => [
+                'name' => 'HQ Main Warehouse',
+                'is_sellable' => false,
+            ],
         ];
 
         return $map[$type] ?? [
@@ -149,5 +175,45 @@ class Warehouse extends Model
         foreach (self::SYSTEM_TYPES as $type) {
             static::getOrCreateSystemWarehouse($tenantId, $branchId, $type);
         }
+    }
+
+    /**
+     * Get or create the single Central (HQ Main Warehouse) for a given HQ
+     * branch. Throws if the branch is not an HQ branch.
+     */
+    public static function getOrCreateHqWarehouse(int $tenantId, Branch $hqBranch): self
+    {
+        if (! $hqBranch->isHq()) {
+            throw new \InvalidArgumentException('The HQ Main Warehouse can only be created for an HQ branch.');
+        }
+
+        return static::getOrCreateSystemWarehouse($tenantId, $hqBranch->id, self::TYPE_HQ_MAIN);
+    }
+
+    /**
+     * Validate that a warehouse type is allowed for the given branch:
+     *  - Central types (HQ Main Warehouse) require an HQ branch.
+     *  - Local types (Backroom Warehouse / Dispensing Shelf) require a
+     *    RETAIL_PHARMACY branch.
+     * Warehouses with no branch (tenant-wide legacy warehouses) and other
+     * uncategorized system types (received/expired/damaged/returns/custom)
+     * are left unrestricted. Returns an error message on failure, or null
+     * when the assignment is valid.
+     */
+    public static function assertBranchTypeAllowed(string $type, ?Branch $branch): ?string
+    {
+        if (! $branch) {
+            return null;
+        }
+
+        if (in_array($type, self::CENTRAL_TYPES, true) && ! $branch->isHq()) {
+            return 'This warehouse type is a Central (HQ) warehouse and can only be assigned to an HQ branch.';
+        }
+
+        if (in_array($type, self::LOCAL_TYPES, true) && ! $branch->isRetail()) {
+            return 'This warehouse type is a Local (branch) warehouse and can only be assigned to a retail pharmacy branch.';
+        }
+
+        return null;
     }
 }

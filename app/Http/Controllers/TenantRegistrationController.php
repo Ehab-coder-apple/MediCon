@@ -227,7 +227,7 @@ class TenantRegistrationController extends Controller
             abort(403, 'Only administrators can create users.');
         }
 
-        $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+        $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER, Role::HQ_INVENTORY_MANAGER, Role::HQ_HR_MANAGER];
 
         $roles = Role::whereIn('name', $allowedRoleNames)
             ->active()
@@ -329,14 +329,17 @@ class TenantRegistrationController extends Controller
 
             // Verify role is allowed
             $role = Role::findOrFail($request->role_id);
-            $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+            $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER, Role::HQ_INVENTORY_MANAGER, Role::HQ_HR_MANAGER];
 
             if (!in_array($role->name, $allowedRoleNames, true)) {
                 throw new \Exception('Invalid role selected.');
             }
 
-            // If a branch is selected, ensure it belongs to this tenant
+            // If a branch is selected, ensure it belongs to this tenant and
+            // matches the role's scope (global HQ roles -> HQ branch,
+            // branch-scoped roles -> retail pharmacy branch).
             $branchId = $request->input('branch_id');
+            $branch = null;
             if ($branchId) {
                 $branch = Branch::where('id', $branchId)
                     ->where('tenant_id', $tenant->id)
@@ -345,6 +348,11 @@ class TenantRegistrationController extends Controller
                 if (!$branch) {
                     throw new \Exception('Invalid branch selected for this pharmacy.');
                 }
+            }
+
+            $branchScopeError = User::validateBranchAssignment($role, $branch);
+            if ($branchScopeError) {
+                throw new \Exception($branchScopeError);
             }
 
             // Determine final permissions for this user.
@@ -410,7 +418,7 @@ class TenantRegistrationController extends Controller
             abort(403, 'You cannot edit users from other tenants.');
         }
 
-        $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+        $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER, Role::HQ_INVENTORY_MANAGER, Role::HQ_HR_MANAGER];
 
         $roles = Role::whereIn('name', $allowedRoleNames)
             ->active()
@@ -521,13 +529,14 @@ class TenantRegistrationController extends Controller
             $role = Role::findOrFail($request->role_id);
 
             // Ensure role is one of the allowed tenant roles
-            $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER];
+            $allowedRoleNames = [Role::ADMIN, Role::PHARMACIST, Role::SALES_STAFF, Role::WORKER, Role::HQ_INVENTORY_MANAGER, Role::HQ_HR_MANAGER];
             if (!in_array($role->name, $allowedRoleNames, true)) {
                 throw new \Exception('Invalid role selected.');
             }
 
             // If a branch is selected, ensure it belongs to the same tenant as the user (when applicable)
             $branchId = $request->input('branch_id');
+            $branch = null;
             if ($branchId) {
                 $tenantId = $user->tenant_id ?? $currentUser->tenant_id;
 
@@ -540,6 +549,15 @@ class TenantRegistrationController extends Controller
                         throw new \Exception('Invalid branch selected for this user.');
                     }
                 }
+            } elseif ($user->branch_id) {
+                // No branch submitted: the user keeps their existing branch,
+                // so validate the role change against that branch instead.
+                $branch = $user->branch;
+            }
+
+            $branchScopeError = User::validateBranchAssignment($role, $branch);
+            if ($branchScopeError) {
+                throw new \Exception($branchScopeError);
             }
 
             // Resolve role's effective permissions (DB + static defaults)

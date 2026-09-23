@@ -70,6 +70,18 @@ class BranchManagementController extends Controller
     {
         $this->authorize('access-admin-dashboard');
 
+        $user = auth()->user();
+        $tenantId = $user->tenant_id;
+
+        // If user has no tenant_id, try to get the first active tenant
+        if (!$tenantId) {
+            $tenant = Tenant::where('is_active', true)->first();
+            if (!$tenant) {
+                abort(403, 'Access denied: No active tenant found');
+            }
+            $tenantId = $tenant->id;
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:branches,code',
@@ -86,20 +98,20 @@ class BranchManagementController extends Controller
             'email' => 'nullable|email|max:255',
             'manager_name' => 'nullable|string|max:255',
             'is_active' => 'boolean',
+            'branch_type' => 'nullable|in:HQ,RETAIL_PHARMACY',
+            'parent_id' => 'nullable|integer|exists:branches,id',
         ]);
 
-        $user = auth()->user();
-        $tenantId = $user->tenant_id;
+        $branchType = $validated['branch_type'] ?? Branch::TYPE_RETAIL_PHARMACY;
+        $parentId = $validated['parent_id'] ?? null;
 
-        // If user has no tenant_id, try to get the first active tenant
-        if (!$tenantId) {
-            $tenant = Tenant::where('is_active', true)->first();
-            if (!$tenant) {
-                abort(403, 'Access denied: No active tenant found');
-            }
-            $tenantId = $tenant->id;
+        $hierarchyError = (new Branch())->validateHierarchy($parentId, $branchType, $tenantId);
+        if ($hierarchyError) {
+            return back()->withErrors(['parent_id' => $hierarchyError])->withInput();
         }
 
+        $validated['branch_type'] = $branchType;
+        $validated['parent_id'] = $parentId;
         $validated['tenant_id'] = $tenantId;
         $validated['created_by'] = auth()->id();
         $validated['updated_by'] = auth()->id();
@@ -155,8 +167,26 @@ class BranchManagementController extends Controller
             'email' => 'nullable|email|max:255',
             'manager_name' => 'nullable|string|max:255',
             'is_active' => 'boolean',
+            'branch_type' => 'nullable|in:HQ,RETAIL_PHARMACY',
+            'parent_id' => 'nullable|integer|exists:branches,id',
         ]);
 
+        $branchType = $validated['branch_type'] ?? $branch->branch_type;
+        $parentId = array_key_exists('parent_id', $validated) ? $validated['parent_id'] : $branch->parent_id;
+
+        $hierarchyError = $branch->validateHierarchy($parentId, $branchType, $branch->tenant_id);
+        if ($hierarchyError) {
+            return back()->withErrors(['parent_id' => $hierarchyError])->withInput();
+        }
+
+        // Prevent turning an HQ branch with existing children into a retail
+        // branch, which would orphan those children's hierarchy.
+        if ($branchType === Branch::TYPE_RETAIL_PHARMACY && $branch->isHq() && $branch->children()->exists()) {
+            return back()->withErrors(['branch_type' => 'This HQ branch has child branches and cannot be converted to a retail pharmacy branch.'])->withInput();
+        }
+
+        $validated['branch_type'] = $branchType;
+        $validated['parent_id'] = $parentId;
         $validated['updated_by'] = auth()->id();
 
         $branch->update($validated);

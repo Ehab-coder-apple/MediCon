@@ -105,6 +105,27 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all temporary HR branch allocation overrides for this user.
+     */
+    public function branchAllocationOverrides(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\BranchAllocationOverride::class);
+    }
+
+    /**
+     * Resolve the branch this user is actually operating under right now
+     * (or on a given date): an active temporary HR allocation override
+     * takes priority over the permanent branch_id assignment. Prefer this
+     * over reading branch_id directly wherever branch context drives
+     * behaviour (POS branding, local warehouse lookups, attendance
+     * geofencing, etc.) so floated workers are handled transparently.
+     */
+    public function activeBranchContext(?\Carbon\Carbon $onDate = null): ?Branch
+    {
+        return \App\Services\BranchContextService::getActiveUserBranchContext($this, $onDate);
+    }
+
+    /**
      * Get all attendance records for this user
      */
     public function attendances(): \Illuminate\Database\Eloquent\Relations\HasMany
@@ -190,6 +211,44 @@ class User extends Authenticatable
     public function isSalesStaff(): bool
     {
         return $this->hasRole(Role::SALES_STAFF);
+    }
+
+    /**
+     * Whether this user's role operates globally (HQ-wide) rather than
+     * being locked to a single retail branch.
+     */
+    public function isGlobalRole(): bool
+    {
+        return $this->role && $this->role->isGlobalScope();
+    }
+
+    /**
+     * Validate that this user's assigned branch matches their role's scope:
+     * global-scope roles (admin, hq_inventory_manager, hq_hr_manager) must
+     * be assigned to a corporate HQ branch (or no branch at all), while
+     * branch-scoped roles (pharmacist, sales_staff, worker) must be
+     * assigned to a retail pharmacy branch. Returns an error message string
+     * on failure, or null when the assignment is valid.
+     *
+     * This is an application-level guard (called from controllers before
+     * saving) rather than a DB constraint, since it needs to join role
+     * scope with branch type.
+     */
+    public static function validateBranchAssignment(Role $role, ?Branch $branch): ?string
+    {
+        if (! $branch) {
+            return null;
+        }
+
+        if ($role->isGlobalScope() && ! $branch->isHq()) {
+            return "The role '{$role->display_name}' is a corporate HQ role and must be assigned to an HQ branch.";
+        }
+
+        if ($role->isBranchScoped() && ! $branch->isRetail()) {
+            return "The role '{$role->display_name}' is a branch-level role and must be assigned to a retail pharmacy branch.";
+        }
+
+        return null;
     }
 
     /**

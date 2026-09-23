@@ -87,7 +87,10 @@ class Product extends Model
             }
         }
 
-        $branchId = $user?->branch_id ?? null;
+        // Route through the branch context switchboard rather than reading
+        // branch_id directly, so a user under a temporary HR allocation
+        // override is scoped to the branch they're actually floated to.
+        $branchId = $user ? \App\Services\BranchContextService::getActiveUserBranchId($user) : null;
 
         if (! $tenantId) {
             // Fallback to legacy behavior if no tenant context is available

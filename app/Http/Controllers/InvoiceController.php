@@ -12,6 +12,7 @@ use App\Models\Tenant;
 use App\Models\WhatsAppMessage;
 use App\Services\WhatsAppService;
 use App\Services\ProductDisplayService;
+use App\Services\BranchContextService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -129,7 +130,15 @@ class InvoiceController extends Controller
         // Active shift for this operator drives the on-screen terminal lock/indicator.
         $activeShift = Shift::currentFor($user);
 
-        return view('invoices.create', compact('customers', 'products', 'activeShift'));
+        // Resolve the branch this operator is actually working under right
+        // now (a temporary HR allocation override takes priority over their
+        // permanent branch_id) so the POS header/branding always reflects
+        // where sales are really being recorded for, rather than reading
+        // $user->branch_id directly.
+        $activeBranch = BranchContextService::getActiveUserBranchContext($user);
+        $isUnderBranchOverride = BranchContextService::isUnderOverride($user);
+
+        return view('invoices.create', compact('customers', 'products', 'activeShift', 'activeBranch', 'isUnderBranchOverride'));
     }
 
     /**

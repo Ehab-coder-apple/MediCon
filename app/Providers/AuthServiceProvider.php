@@ -62,6 +62,16 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasRole('sales_staff');
         });
 
+        // Corporate chain HQ roles get their own dashboard landing pages,
+        // mirroring the branch-scoped admin/pharmacist/sales-staff gates.
+        Gate::define('access-hq-inventory-dashboard', function (User $user) {
+            return $user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER);
+        });
+
+        Gate::define('access-hq-hr-dashboard', function (User $user) {
+            return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER);
+        });
+
         Gate::define('manage-inventory', function (User $user) {
             return $user->hasPermission('manage_inventory');
         });
@@ -89,6 +99,26 @@ class AuthServiceProvider extends ServiceProvider
 
         Gate::define('full-admin-access', function (User $user) {
             return $user->hasPermission('full_admin_access');
+        });
+
+        // Corporate chain: HQ Inventory Manager (and anyone else granted the
+        // permission) may initiate/dispatch/cancel stock transfer orders
+        // from a Central (HQ) warehouse down to a branch.
+        Gate::define('initiate-stock-transfer-orders', function (User $user) {
+            return $user->hasPermission('initiate_stock_transfers');
+        });
+
+        // Only branch workers may confirm receipt of a stock transfer order
+        // at their own branch; the controller/service additionally verifies
+        // the user is assigned to the order's destination branch.
+        Gate::define('receive-stock-transfer-orders', function (User $user) {
+            return $user->hasRole(\App\Models\Role::WORKER);
+        });
+
+        // HQ HR Manager (or anyone else granted the permission) may create
+        // temporary branch allocation overrides for staff.
+        Gate::define('manage-branch-allocations', function (User $user) {
+            return $user->hasPermission('manage_branch_allocations');
         });
     }
 }

@@ -85,8 +85,9 @@ class WarehouseController extends Controller
             ->get();
 
         $types = [
-            'main' => 'Main Warehouse',
-            'on_shelf' => 'On Shelf (Sellable)',
+            'main' => 'Backroom Warehouse (Local)',
+            'on_shelf' => 'Dispensing Shelf (Local, Sellable)',
+            'hq_main' => 'HQ Main Warehouse (Central)',
             'received' => 'Received Goods',
             'expired' => 'Expired Goods',
             'damaged' => 'Damaged Goods',
@@ -124,6 +125,12 @@ class WarehouseController extends Controller
             $tenantId = $tenant->id;
         }
 
+        $branch = ! empty($validated['branch_id']) ? Branch::find($validated['branch_id']) : null;
+        $typeError = Warehouse::assertBranchTypeAllowed($validated['type'], $branch);
+        if ($typeError) {
+            return back()->withErrors(['type' => $typeError])->withInput();
+        }
+
         $validated['tenant_id'] = $tenantId;
         $validated['is_sellable'] = $request->boolean('is_sellable');
 
@@ -159,8 +166,9 @@ class WarehouseController extends Controller
             ->get();
 
         $types = [
-            'main' => 'Main Warehouse',
-            'on_shelf' => 'On Shelf (Sellable)',
+            'main' => 'Backroom Warehouse (Local)',
+            'on_shelf' => 'Dispensing Shelf (Local, Sellable)',
+            'hq_main' => 'HQ Main Warehouse (Central)',
             'received' => 'Received Goods',
             'expired' => 'Expired Goods',
             'damaged' => 'Damaged Goods',
@@ -180,9 +188,9 @@ class WarehouseController extends Controller
         $this->checkTenantAccess($warehouse);
 
         if ($warehouse->is_system ?? false) {
-            $allowedTypes = ['main', 'on_shelf', 'received', 'expired', 'damaged', 'returns'];
+            $allowedTypes = ['main', 'on_shelf', 'hq_main', 'received', 'expired', 'damaged', 'returns'];
         } else {
-            $allowedTypes = ['main', 'on_shelf', 'received', 'expired', 'damaged', 'returns', 'custom'];
+            $allowedTypes = ['main', 'on_shelf', 'hq_main', 'received', 'expired', 'damaged', 'returns', 'custom'];
         }
 
         $validated = $request->validate([
@@ -192,6 +200,12 @@ class WarehouseController extends Controller
             'is_sellable' => 'boolean',
             'specifications' => 'nullable|string',
         ]);
+
+        $branch = ! empty($validated['branch_id']) ? Branch::find($validated['branch_id']) : null;
+        $typeError = Warehouse::assertBranchTypeAllowed($validated['type'], $branch);
+        if ($typeError) {
+            return back()->withErrors(['type' => $typeError])->withInput();
+        }
 
         $validated['is_sellable'] = $request->boolean('is_sellable');
 

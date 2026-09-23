@@ -11,6 +11,23 @@
                 </h2>
             </div>
             <div style="display: flex; align-items: center; gap: 16px;">
+                @if($activeBranch)
+                    {{-- Reflects BranchContextService::getActiveUserBranchContext(): the
+                         branch this operator/terminal is actually working under right now.
+                         When under an active temporary HR allocation override, the badge
+                         switches to amber and says "Temporary Assignment" so a floated
+                         pharmacist always knows they're at a non-home store. --}}
+                    <div style="display: flex; align-items: center; gap: 8px; background: {{ $isUnderBranchOverride ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.10)' }}; border: 1px solid {{ $isUnderBranchOverride ? 'rgba(251,191,36,0.55)' : 'rgba(167,243,208,0.35)' }}; padding: 5px 12px; border-radius: 9999px;" title="{{ $isUnderBranchOverride ? 'Temporary branch allocation: you are currently assigned to this store' : 'Branch this terminal is currently operating under' }}">
+                        <i class="fas {{ $isUnderBranchOverride ? 'fa-people-arrows' : 'fa-store' }}" style="color: {{ $isUnderBranchOverride ? '#fcd34d' : '#a7f3d0' }};"></i>
+                        <span style="color: #ffffff; font-size: 13px; font-weight: 600; white-space: nowrap;">
+                            @if($isUnderBranchOverride)
+                                Temporary Assignment: {{ $activeBranch->name }}
+                            @else
+                                {{ $activeBranch->name }}
+                            @endif
+                        </span>
+                    </div>
+                @endif
                 @if($activeShift)
                     <div style="display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.10); border: 1px solid rgba(167,243,208,0.35); padding: 5px 12px; border-radius: 9999px;" title="Active shift session">
                         <span style="width: 9px; height: 9px; border-radius: 9999px; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,0.25);"></span>

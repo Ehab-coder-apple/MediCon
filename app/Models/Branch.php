@@ -12,6 +12,12 @@ class Branch extends Model
 {
     // use BelongsToTenant; // Temporarily disabled for seeding
 
+    /**
+     * Branch hierarchy types.
+     */
+    public const TYPE_HQ = 'HQ';
+    public const TYPE_RETAIL_PHARMACY = 'RETAIL_PHARMACY';
+
     protected $fillable = [
         'name',
         'code',
@@ -32,6 +38,8 @@ class Branch extends Model
         'requires_geofencing',
         'settings',
         'tenant_id',
+        'branch_type',
+        'parent_id',
         'created_by',
         'updated_by',
     ];
@@ -70,6 +78,95 @@ class Branch extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the parent HQ branch, if any.
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'parent_id');
+    }
+
+    /**
+     * Get the child retail branches reporting up to this (HQ) branch.
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Branch::class, 'parent_id');
+    }
+
+    /**
+     * Scope: only corporate HQ branches.
+     */
+    public function scopeHq($query)
+    {
+        return $query->where('branch_type', self::TYPE_HQ);
+    }
+
+    /**
+     * Scope: only retail pharmacy branches.
+     */
+    public function scopeRetail($query)
+    {
+        return $query->where('branch_type', self::TYPE_RETAIL_PHARMACY);
+    }
+
+    /**
+     * Whether this branch is a corporate HQ branch.
+     */
+    public function isHq(): bool
+    {
+        return $this->branch_type === self::TYPE_HQ;
+    }
+
+    /**
+     * Whether this branch is a retail pharmacy branch.
+     */
+    public function isRetail(): bool
+    {
+        return $this->branch_type === self::TYPE_RETAIL_PHARMACY;
+    }
+
+    /**
+     * Validate the proposed hierarchy for this branch before it is
+     * persisted: an HQ branch may never have a parent, and a parent (when
+     * set) must itself be an HQ branch within the same tenant. Returns an
+     * error message string on failure, or null when the hierarchy is valid.
+     *
+     * This is an application-level guard (called from controllers) rather
+     * than a DB constraint, since it needs to compare branch_type across
+     * rows and is tenant-scoped.
+     */
+    public function validateHierarchy(?int $parentId, string $branchType, ?int $tenantId = null): ?string
+    {
+        $tenantId = $tenantId ?? $this->tenant_id;
+
+        if ($branchType === self::TYPE_HQ && $parentId) {
+            return 'An HQ branch cannot have a parent branch.';
+        }
+
+        if ($parentId) {
+            if ($parentId === $this->id) {
+                return 'A branch cannot be its own parent.';
+            }
+
+            $parent = static::find($parentId);
+
+            if (! $parent) {
+                return 'The selected parent branch does not exist.';
+            }
+
+            if (! $parent->isHq()) {
+                return 'The parent branch must be a corporate HQ branch.';
+            }
+
+            if ($tenantId !== null && $parent->tenant_id !== $tenantId) {
+                return 'The parent branch must belong to the same organization.';
+            }
+        }
+
+        return null;
     }
 
     /**

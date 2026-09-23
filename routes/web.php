@@ -22,6 +22,10 @@ use App\Http\Controllers\ComplianceReportsController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\StockReceivingController;
+use App\Http\Controllers\StockTransferOrderController;
+use App\Http\Controllers\BranchAllocationOverrideController;
+use App\Http\Controllers\HqInventoryDashboardController;
+use App\Http\Controllers\HqHrDashboardController;
 use App\Http\Controllers\SalesStaffDashboardController;
 use App\Http\Controllers\SubcategoryController;
 use App\Http\Controllers\SupplierController;
@@ -124,6 +128,8 @@ Route::middleware([
             \App\Models\Role::ADMIN => redirect()->route('admin.dashboard'),
             \App\Models\Role::PHARMACIST => redirect()->route('pharmacist.dashboard'),
             \App\Models\Role::SALES_STAFF => redirect()->route('sales-staff.dashboard'),
+            \App\Models\Role::HQ_INVENTORY_MANAGER => redirect()->route('hq-inventory.dashboard'),
+            \App\Models\Role::HQ_HR_MANAGER => redirect()->route('hq-hr.dashboard'),
             default => abort(403, 'Invalid role: ' . $user->role->name),
         };
     })->name('dashboard');
@@ -198,6 +204,28 @@ Route::middleware([
 
     // Product lookup for barcode scanner (available to all authenticated users)
     Route::get('/sales/product-lookup', [SaleController::class, 'getProductDetails'])->name('sales.product-lookup');
+
+    // Stock transfer orders (HQ Central -> branch Local warehouse). Actions
+    // are Gate-protected per-role rather than route-group-protected since
+    // both HQ inventory managers and branch workers need access here;
+    // consumed by the hq-inventory.dashboard view below.
+    Route::prefix('stock-transfer-orders')->name('stock-transfer-orders.')->group(function () {
+        Route::get('/', [StockTransferOrderController::class, 'index'])->name('index');
+        Route::get('/{stockTransferOrder}', [StockTransferOrderController::class, 'show'])->name('show');
+        Route::post('/', [StockTransferOrderController::class, 'store'])->name('store');
+        Route::patch('/{stockTransferOrder}/in-transit', [StockTransferOrderController::class, 'markInTransit'])->name('in-transit');
+        Route::patch('/{stockTransferOrder}/cancel', [StockTransferOrderController::class, 'cancel'])->name('cancel');
+        Route::patch('/{stockTransferOrder}/receive', [StockTransferOrderController::class, 'receive'])->name('receive');
+    });
+
+    // Temporary HR branch allocation overrides (HQ HR Manager). Gate-
+    // protected per action; consumed by the hq-hr.dashboard view below.
+    Route::prefix('branch-allocation-overrides')->name('branch-allocation-overrides.')->group(function () {
+        Route::get('/', [BranchAllocationOverrideController::class, 'index'])->name('index');
+        Route::post('/', [BranchAllocationOverrideController::class, 'store'])->name('store');
+        Route::put('/{branchAllocationOverride}', [BranchAllocationOverrideController::class, 'update'])->name('update');
+        Route::delete('/{branchAllocationOverride}', [BranchAllocationOverrideController::class, 'destroy'])->name('destroy');
+    });
 
     // Shift management (shared single terminal) - available to any operator
     Route::get('/shift/start', [ShiftController::class, 'showStart'])->name('shifts.start');
@@ -497,6 +525,18 @@ Route::middleware([
         Route::post('/code-generator/validate', [CodeGeneratorController::class, 'validateCode'])->name('code-generator.validate');
         Route::get('/code-generator/preview', [CodeGeneratorController::class, 'previewNext'])->name('code-generator.preview');
         Route::get('/code-generator/statistics', [CodeGeneratorController::class, 'getStatistics'])->name('code-generator.statistics');
+    });
+
+    // HQ Inventory Manager routes (corporate chain: Central warehouse
+    // control + stock transfer order initiation across branches).
+    Route::middleware(['can:access-hq-inventory-dashboard'])->prefix('hq-inventory')->name('hq-inventory.')->group(function () {
+        Route::get('/dashboard', [HqInventoryDashboardController::class, 'index'])->name('dashboard');
+    });
+
+    // HQ HR Manager routes (corporate chain: global employee records +
+    // temporary branch allocation overrides).
+    Route::middleware(['can:access-hq-hr-dashboard'])->prefix('hq-hr')->name('hq-hr.')->group(function () {
+        Route::get('/dashboard', [HqHrDashboardController::class, 'index'])->name('dashboard');
     });
 });
 

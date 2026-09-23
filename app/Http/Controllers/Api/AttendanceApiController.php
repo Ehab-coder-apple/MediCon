@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\User;
 use App\Services\AttendanceService;
+use App\Services\BranchContextService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -40,11 +41,13 @@ class AttendanceApiController extends Controller
 
             // Verify user belongs to this branch
             // - Super admins can access all branches
-            // - Legacy single-branch assignment (branch_id)
-            // - Many-to-many assignment via branch_user pivot
+            // - Active branch context (permanent branch_id, or a temporary
+            //   HR allocation override that is active today)
+            // - Legacy many-to-many assignment via branch_user pivot
             // - Option A: Any user can access branches that belong to their tenant
+            $activeBranch = BranchContextService::getActiveUserBranchContext($user);
             $userBelongsToBranch = $user->is_super_admin ||
-                                   $user->branch_id === $branch->id ||
+                                   ($activeBranch && $activeBranch->id === $branch->id) ||
                                    $user->branches()->where('branch_id', $branch->id)->exists() ||
                                    ($user->tenant_id && $branch->tenant_id === $user->tenant_id);
 
@@ -150,15 +153,19 @@ class AttendanceApiController extends Controller
     }
 
     /**
-     * Get user's assigned branch (legacy - single branch)
+     * Get the branch the user is actually operating under right now (their
+     * active temporary HR allocation override, if any, otherwise their
+     * permanent branch_id assignment). Used by the mobile app to geofence-
+     * check the correct location for a floated worker.
      * GET /api/attendance/branch
      */
     public function getBranch(): JsonResponse
     {
         try {
             $user = auth()->user();
+            $branch = BranchContextService::getActiveUserBranchContext($user);
 
-            if (!$user->branch) {
+            if (!$branch) {
                 return response()->json([
                     'success' => false,
                     'message' => 'No branch assigned to user',
@@ -168,13 +175,14 @@ class AttendanceApiController extends Controller
             return response()->json([
                 'success' => true,
                 'branch' => [
-                    'id' => $user->branch->id,
-                    'name' => $user->branch->name,
-                    'latitude' => $user->branch->latitude,
-                    'longitude' => $user->branch->longitude,
-                    'geofence_radius' => $user->branch->geofence_radius,
-                    'address' => $user->branch->full_address,
+                    'id' => $branch->id,
+                    'name' => $branch->name,
+                    'latitude' => $branch->latitude,
+                    'longitude' => $branch->longitude,
+                    'geofence_radius' => $branch->geofence_radius,
+                    'address' => $branch->full_address,
                 ],
+                'is_temporary_override' => BranchContextService::isUnderOverride($user),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -208,6 +216,17 @@ class AttendanceApiController extends Controller
                     ->active()
                     ->orderBy('name')
                     ->get();
+            }
+
+            // If the user is currently floated to another branch via a
+            // temporary HR allocation override, make sure that branch is
+            // included (and listed first) so the mobile app can geofence
+            // check-in against the branch they're actually working at today.
+            $activeBranch = BranchContextService::getActiveUserBranchContext($user);
+            if ($activeBranch && ! $branches->contains('id', $activeBranch->id)) {
+                $branches = $branches->prepend($activeBranch);
+            } elseif ($activeBranch) {
+                $branches = $branches->sortByDesc(fn ($b) => $b->id === $activeBranch->id)->values();
             }
 
             if ($branches->isEmpty()) {
