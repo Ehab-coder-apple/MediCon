@@ -19,6 +19,34 @@
         @error('code') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
     </div>
 
+    <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6"
+        x-data="{ branchType: '{{ old('branch_type', $branch->branch_type ?? 'RETAIL_PHARMACY') }}', parentId: '{{ old('parent_id', $branch->parent_id ?? '') }}' }"
+        x-init="$watch('branchType', value => { if (value === 'HQ') { parentId = '' } })">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Branch Type *</label>
+            <select name="branch_type" x-model="branchType" required
+                class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                <option value="RETAIL_PHARMACY">Retail Pharmacy</option>
+                <option value="HQ">Headquarters (HQ)</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-2">💡 HQ branches manage Central warehouses and cannot have a parent branch.</p>
+            @error('branch_type') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+        </div>
+
+        <div x-show="branchType !== 'HQ'" x-cloak>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Parent HQ Branch</label>
+            <select name="parent_id" x-model="parentId"
+                class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
+                <option value="">— No parent (standalone) —</option>
+                @foreach($hqBranches ?? [] as $hqBranch)
+                    <option value="{{ $hqBranch->id }}">{{ $hqBranch->name }}</option>
+                @endforeach
+            </select>
+            <p class="text-xs text-gray-500 mt-2">💡 Optional: link this retail branch to a corporate HQ for stock transfers.</p>
+            @error('parent_id') <span class="text-red-600 text-sm mt-1 block">{{ $message }}</span> @enderror
+        </div>
+    </div>
+
     <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-2">Address *</label>
         <input type="text" name="address" value="{{ old('address', $branch->address ?? '') }}" required

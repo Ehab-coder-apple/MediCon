@@ -25,7 +25,7 @@
             <form method="POST" action="{{ route('admin.branches.store') }}">
                 @csrf
 
-                @include('admin.branches.form', ['branch' => null])
+                @include('admin.branches.form', ['branch' => null, 'hqBranches' => $hqBranches])
 
                 <!-- Form Actions -->
                 <div class="flex gap-4 mt-10 pt-8 border-t-2 border-gray-200">

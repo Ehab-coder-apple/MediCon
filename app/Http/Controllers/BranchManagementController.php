@@ -60,7 +60,13 @@ class BranchManagementController extends Controller
     public function create(): View
     {
         $this->authorize('access-admin-dashboard');
-        return view('admin.branches.create');
+
+        $hqBranches = Branch::hq()
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.branches.create', compact('hqBranches'));
     }
 
     /**
@@ -141,7 +147,13 @@ class BranchManagementController extends Controller
         $this->authorize('access-admin-dashboard');
         $this->checkTenantAccess($branch);
 
-        return view('admin.branches.edit', compact('branch'));
+        $hqBranches = Branch::hq()
+            ->where('tenant_id', $branch->tenant_id)
+            ->where('id', '!=', $branch->id)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.branches.edit', compact('branch', 'hqBranches'));
     }
 
     /**

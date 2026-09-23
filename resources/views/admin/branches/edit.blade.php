@@ -26,7 +26,7 @@
                 @csrf
                 @method('PUT')
 
-                @include('admin.branches.form', ['branch' => $branch])
+                @include('admin.branches.form', ['branch' => $branch, 'hqBranches' => $hqBranches])
 
                 <!-- Form Actions -->
                 <div class="flex gap-4 mt-10 pt-8 border-t-2 border-gray-200">
