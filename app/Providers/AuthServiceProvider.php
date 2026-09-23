@@ -103,9 +103,14 @@ class AuthServiceProvider extends ServiceProvider
 
         // Corporate chain: HQ Inventory Manager (and anyone else granted the
         // permission) may initiate/dispatch/cancel stock transfer orders
-        // from a Central (HQ) warehouse down to a branch.
+        // from a Central (HQ) warehouse down to a branch. The role check is
+        // a direct grant so this dedicated global role always works out of
+        // the box, even if a per-user 'permissions' array (which overrides
+        // role defaults entirely once set - see User::hasPermission()) was
+        // saved without this box checked.
         Gate::define('initiate-stock-transfer-orders', function (User $user) {
-            return $user->hasPermission('initiate_stock_transfers');
+            return $user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER)
+                || $user->hasPermission('initiate_stock_transfers');
         });
 
         // Only branch workers may confirm receipt of a stock transfer order
@@ -116,9 +121,14 @@ class AuthServiceProvider extends ServiceProvider
         });
 
         // HQ HR Manager (or anyone else granted the permission) may create
-        // temporary branch allocation overrides for staff.
+        // temporary branch allocation overrides for staff. The role check is
+        // a direct grant so this dedicated global role always works out of
+        // the box, even if a per-user 'permissions' array (which overrides
+        // role defaults entirely once set - see User::hasPermission()) was
+        // saved without this box checked.
         Gate::define('manage-branch-allocations', function (User $user) {
-            return $user->hasPermission('manage_branch_allocations');
+            return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER)
+                || $user->hasPermission('manage_branch_allocations');
         });
     }
 }
