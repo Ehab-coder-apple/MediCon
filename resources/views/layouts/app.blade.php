@@ -537,7 +537,7 @@
                     </div>
                     @endif
 
-                    @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER) || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
+                    @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER) || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER) || $user->hasRole('admin'))
                     <!-- SECTION 8b: HQ Corporate Chain -->
                     <div class="mt-2">
                         @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER))
@@ -546,7 +546,9 @@
                             HQ Inventory Dashboard
                         </a>
                         @endif
-                        @if($user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
+                        {{-- Admin can also manage branch allocations, alongside the
+                             dedicated HQ HR Manager global role. --}}
+                        @if($user->hasRole(\App\Models\Role::HQ_HR_MANAGER) || $user->hasRole('admin'))
                         <a href="{{ route('hq-hr.dashboard') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-hr.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                             <i class="fa-solid fa-people-arrows w-5 mr-3 text-center"></i>
                             Branch Allocations (HR)

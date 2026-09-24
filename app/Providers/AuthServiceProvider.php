@@ -68,8 +68,10 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER);
         });
 
+        // Admin can also manage branch allocations from the HQ HR dashboard,
+        // alongside the dedicated HQ HR Manager global role.
         Gate::define('access-hq-hr-dashboard', function (User $user) {
-            return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER);
+            return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER) || $user->hasRole('admin');
         });
 
         // Personnel tools (Users Management + Attendance logs) are shared
@@ -136,6 +138,7 @@ class AuthServiceProvider extends ServiceProvider
         // saved without this box checked.
         Gate::define('manage-branch-allocations', function (User $user) {
             return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER)
+                || $user->hasRole('admin')
                 || $user->hasPermission('manage_branch_allocations');
         });
     }
