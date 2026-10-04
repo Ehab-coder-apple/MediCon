@@ -165,7 +165,7 @@
                          (Users Management + Attendance, see Section 6 below). --}}
                     @unless($user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
                     <!-- SECTION 2: Inventory -->
-                    <div x-data="{ open: {{ request()->routeIs($routePrefix . 'products.*', $routePrefix . 'batches.*', 'admin.locations.*', 'admin.categories.*', 'admin.subcategories.*') ? 'true' : 'false' }} }" class="mt-2">
+                    <div x-data="{ open: {{ request()->routeIs($routePrefix . 'products.*', $routePrefix . 'batches.*', 'admin.locations.*', 'admin.categories.*', 'admin.subcategories.*', 'hq-inventory.*', 'admin.warehouses.*') ? 'true' : 'false' }} }" class="mt-2">
                         <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
                             <div class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -194,6 +194,25 @@
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
                                 </svg>
                                 Batches
+                            </a>
+                            @endif
+                            @if($user->hasRole('admin'))
+                            {{-- Explicit stock-layer separation (Central HQ warehouse vs.
+                                 branch backroom vs. POS counter shelf), admin-only. --}}
+                            <!-- Central Warehouse Stock -->
+                            <a href="{{ route('hq-inventory.dashboard') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('hq-inventory.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                                <span class="w-4 h-4 mr-2 text-center">📦</span>
+                                Central Warehouse Stock
+                            </a>
+                            <!-- Pharmacy Backroom Stock -->
+                            <a href="{{ route('admin.warehouses.index', ['type' => \App\Models\Warehouse::TYPE_MAIN]) }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.warehouses.*') && request('type') === \App\Models\Warehouse::TYPE_MAIN ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                                <span class="w-4 h-4 mr-2 text-center">🏪</span>
+                                Pharmacy Backroom Stock
+                            </a>
+                            <!-- Counter Dispensing Shelves -->
+                            <a href="{{ route('admin.warehouses.index', ['type' => \App\Models\Warehouse::TYPE_ON_SHELF]) }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('admin.warehouses.*') && request('type') === \App\Models\Warehouse::TYPE_ON_SHELF ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                                <span class="w-4 h-4 mr-2 text-center">💊</span>
+                                Counter Dispensing Shelves
                             </a>
                             @endif
                             <!-- Locations -->
@@ -582,12 +601,66 @@
                                 {{ $header }}
                             @endif
                         </div>
-                        <div class="flex items-center space-x-4 px-6 py-4 bg-white">
-                            <span class="text-gray-600 text-sm">{{ auth()->user()->name }}</span>
-                            <div class="bg-green-500 rounded-full w-8 h-8 flex items-center justify-center">
-                                <span class="text-white font-semibold text-xs">{{ substr(auth()->user()->name, 0, 1) }}</span>
+                        <div class='flex items-center space-x-4 px-6 py-4 bg-white'>
+                            {{-- Active Branch Context Badge: shows which branch the user is
+                                 currently operating under (BranchContextService is the single
+                                 switchboard - it already layers in HR allocation overrides and,
+                                 for global roles, the viewing-context switch below). --}}
+                            @php
+                                $activeBranchContext = \App\Services\BranchContextService::getActiveUserBranchContext($user);
+                            @endphp
+                            @if($activeBranchContext)
+                                @if($user->isGlobalRole())
+                                    {{-- Global roles (admin, hq_inventory_manager, hq_hr_manager)
+                                         get an interactive dropdown: picking a different branch
+                                         POSTs to branch-context.switch to temporarily change their
+                                         active dashboard viewing context. --}}
+                                    <form method='POST' action='{{ route("branch-context.switch") }}' class='inline-block'>
+                                        @csrf
+                                        <select
+                                            name='branch_id'
+                                            onchange='this.form.submit()'
+                                            class='text-xs font-semibold rounded-full pl-3 pr-7 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:ring-blue-400
+                                                @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id) bg-blue-700 text-white
+                                                @elseif($activeBranchContext->isHq()) bg-slate-500 text-white
+                                                @else bg-emerald-600 text-white @endif'
+                                        >
+                                            @foreach(\App\Models\Branch::where('tenant_id', $user->tenant_id)->active()->orderBy('branch_type')->orderBy('name')->get() as $branchOption)
+                                                <option value='{{ $branchOption->id }}' {{ $activeBranchContext->id === $branchOption->id ? 'selected' : '' }}>
+                                                    @if($branchOption->isHq() && !$branchOption->parent_id)
+                                                        👑 Main Corporate HQ
+                                                    @elseif($branchOption->isHq())
+                                                        🏢 Regional HQ: {{ $branchOption->name }}
+                                                    @else
+                                                        🩺 Retail Pharmacy: {{ $branchOption->name }}
+                                                    @endif
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </form>
+                                @else
+                                    {{-- Branch-scoped roles (pharmacist, sales_staff, worker) get a
+                                         plain, non-interactive badge - they are always locked to their
+                                         own assigned (or HR-overridden) branch. --}}
+                                    <span class='text-xs font-semibold rounded-full px-3 py-1.5
+                                        @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id) bg-blue-700 text-white
+                                        @elseif($activeBranchContext->isHq()) bg-slate-500 text-white
+                                        @else bg-emerald-600 text-white @endif'>
+                                        @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id)
+                                            👑 Main Corporate HQ
+                                        @elseif($activeBranchContext->isHq())
+                                            🏢 Regional HQ: {{ $activeBranchContext->name }}
+                                        @else
+                                            🩺 Retail Pharmacy: {{ $activeBranchContext->name }}
+                                        @endif
+                                    </span>
+                                @endif
+                            @endif
+                            <span class='text-gray-600 text-sm'>{{ auth()->user()->name }}</span>
+                            <div class='bg-green-500 rounded-full w-8 h-8 flex items-center justify-center'>
+                                <span class='text-white font-semibold text-xs'>{{ substr(auth()->user()->name, 0, 1) }}</span>
                             </div>
-                            <span class="text-gray-500 text-sm">EN</span>
+                            <span class='text-gray-500 text-sm'>EN</span>
                         </div>
                     </div>
                 </header>

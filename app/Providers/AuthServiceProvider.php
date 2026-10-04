@@ -64,8 +64,11 @@ class AuthServiceProvider extends ServiceProvider
 
         // Corporate chain HQ roles get their own dashboard landing pages,
         // mirroring the branch-scoped admin/pharmacist/sales-staff gates.
+        // Admin can also view the Central Warehouse Stock dashboard (linked
+        // from the Inventory sidebar's 'Central Warehouse Stock' sub-link),
+        // alongside the dedicated HQ Inventory Manager global role.
         Gate::define('access-hq-inventory-dashboard', function (User $user) {
-            return $user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER);
+            return $user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER) || $user->hasRole('admin');
         });
 
         // Admin can also manage branch allocations from the HQ HR dashboard,
@@ -140,6 +143,16 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasRole(\App\Models\Role::HQ_HR_MANAGER)
                 || $user->hasRole('admin')
                 || $user->hasPermission('manage_branch_allocations');
+        });
+
+        // Only global-scope roles (admin, hq_inventory_manager,
+        // hq_hr_manager - see Role::SCOPE_GLOBAL / User::isGlobalRole())
+        // may temporarily switch their active dashboard viewing context to
+        // another branch via the header context dropdown. Branch-scoped
+        // roles (pharmacist, sales_staff, worker) are always locked to
+        // their own assigned branch.
+        Gate::define('switch-branch-viewing-context', function (User $user) {
+            return $user->isGlobalRole();
         });
     }
 }

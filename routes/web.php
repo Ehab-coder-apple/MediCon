@@ -24,6 +24,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\StockReceivingController;
 use App\Http\Controllers\StockTransferOrderController;
 use App\Http\Controllers\BranchAllocationOverrideController;
+use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\HqInventoryDashboardController;
 use App\Http\Controllers\HqHrDashboardController;
 use App\Http\Controllers\SalesStaffDashboardController;
@@ -133,6 +134,14 @@ Route::middleware([
             default => abort(403, 'Invalid role: ' . $user->role->name),
         };
     })->name('dashboard');
+
+    // Dashboard viewing-context switch: lets global-role users (admin,
+    // hq_inventory_manager, hq_hr_manager) temporarily browse as a
+    // different branch via the header context dropdown. Kept outside the
+    // 'admin' prefix group since hq_inventory_manager/hq_hr_manager aren't
+    // the 'admin' role; the Gate inside the controller enforces who may
+    // actually use it.
+    Route::post('/branch-context/switch', [BranchContextController::class, 'setActiveViewingContext'])->name('branch-context.switch');
 
     // Super Admin Routes
     Route::prefix('super-admin')->name('super-admin.')->group(function () {
