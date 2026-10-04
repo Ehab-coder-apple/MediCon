@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Branch;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Role;
@@ -110,6 +111,41 @@ class SuperAdminController extends Controller
 	            // Create the tenant
 	            $tenant = Tenant::create($tenantData);
 
+	            // Auto-create the tenant's initial Corporate HQ branch so every
+	            // tenant starts with a working root branch instead of zero
+	            // branches. This does NOT limit the tenant to a single HQ -
+	            // Branch::validateHierarchy() only blocks an HQ branch from
+	            // having a parent, it never caps how many HQ branches a tenant
+	            // may have, so additional HQs (e.g. for multi-region chains)
+	            // can still be created later via Branch Management.
+	            $hqCode = strtoupper($tenantData['slug']) . '-HQ';
+	            $originalHqCode = $hqCode;
+	            $hqCodeCounter = 1;
+	            while (Branch::where('code', $hqCode)->exists()) {
+	                $hqCode = $originalHqCode . '-' . $hqCodeCounter;
+	                $hqCodeCounter++;
+	            }
+
+	            $hqBranch = Branch::create([
+	                'tenant_id' => $tenant->id,
+	                'branch_type' => Branch::TYPE_HQ,
+	                'parent_id' => null,
+	                'name' => $validated['pharmacy_name'] . ' Corporate HQ',
+	                'code' => $hqCode,
+	                // GPS data (Option A): copy the tenant's own address fields
+	                // onto the HQ branch and placeholder the geofence
+	                // coordinates at 0.000000; the tenant admin edits the
+	                // branch afterward to drop in exact coordinates.
+	                'address' => $tenant->address,
+	                'city' => $tenant->city,
+	                'state' => $tenant->state,
+	                'country' => $tenant->country,
+	                'postal_code' => $tenant->postal_code,
+	                'latitude' => 0.000000,
+	                'longitude' => 0.000000,
+	                'is_active' => true,
+	            ]);
+
 	            // Find (or create) the global admin role
 	            $adminRole = Role::where('name', Role::ADMIN)->first();
 	            if (! $adminRole) {
@@ -122,13 +158,17 @@ class SuperAdminController extends Controller
 	                ]);
 	            }
 
-	            // Create the initial tenant admin user
+	            // Create the initial tenant admin user, assigned to the new
+	            // root HQ branch so they immediately satisfy global role scope
+	            // validations (see User::validateBranchAssignment()) on their
+	            // very first login.
 	            User::create([
 	                'name' => $validated['admin_name'],
 	                'email' => $validated['admin_email'],
 	                'password' => Hash::make($validated['admin_password']),
 	                'tenant_id' => $tenant->id,
 	                'role_id' => $adminRole->id,
+	                'branch_id' => $hqBranch->id,
 	                'is_active' => true,
 	                'is_super_admin' => false,
 	                'email_verified_at' => now(),
