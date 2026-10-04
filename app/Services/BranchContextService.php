@@ -54,7 +54,25 @@ class BranchContextService
             return $override->targetBranch;
         }
 
-        return $user->branch;
+        if ($user->branch) {
+            return $user->branch;
+        }
+
+        // Legacy data fallback: admin accounts created before the HQ
+        // auto-creation feature shipped (SuperAdminController::storeTenant(),
+        // commit cd0e56b) never had their branch_id backfilled and are
+        // stuck null. Rather than leaving them with no workspace context at
+        // all, default them to their tenant's root Corporate HQ branch
+        // (branch_type = HQ, parent_id = null) so the header badge and any
+        // branch-scoped lookups have a sane starting point.
+        if ($user->hasRole('admin') && $user->tenant_id) {
+            return Branch::where('tenant_id', $user->tenant_id)
+                ->where('branch_type', Branch::TYPE_HQ)
+                ->whereNull('parent_id')
+                ->first();
+        }
+
+        return null;
     }
 
     /**
