@@ -609,52 +609,60 @@
                             @php
                                 $activeBranchContext = \App\Services\BranchContextService::getActiveUserBranchContext($user);
                             @endphp
-                            @if($activeBranchContext)
-                                @if($user->isGlobalRole())
-                                    {{-- Global roles (admin, hq_inventory_manager, hq_hr_manager)
-                                         get an interactive dropdown: picking a different branch
-                                         POSTs to branch-context.switch to temporarily change their
-                                         active dashboard viewing context. --}}
-                                    <form method='POST' action='{{ route("branch-context.switch") }}' class='inline-block'>
-                                        @csrf
-                                        <select
-                                            name='branch_id'
-                                            onchange='this.form.submit()'
-                                            class='text-xs font-semibold rounded-full pl-3 pr-7 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:ring-blue-400
-                                                @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id) bg-blue-700 text-white
-                                                @elseif($activeBranchContext->isHq()) bg-slate-500 text-white
-                                                @else bg-emerald-600 text-white @endif'
-                                        >
-                                            @foreach(\App\Models\Branch::where('tenant_id', $user->tenant_id)->active()->orderBy('branch_type')->orderBy('name')->get() as $branchOption)
-                                                <option value='{{ $branchOption->id }}' {{ $activeBranchContext->id === $branchOption->id ? 'selected' : '' }}>
-                                                    @if($branchOption->isHq() && !$branchOption->parent_id)
-                                                        👑 Main Corporate HQ
-                                                    @elseif($branchOption->isHq())
-                                                        🏢 Regional HQ: {{ $branchOption->name }}
-                                                    @else
-                                                        🩺 Retail Pharmacy: {{ $branchOption->name }}
-                                                    @endif
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </form>
-                                @else
-                                    {{-- Branch-scoped roles (pharmacist, sales_staff, worker) get a
-                                         plain, non-interactive badge - they are always locked to their
-                                         own assigned (or HR-overridden) branch. --}}
-                                    <span class='text-xs font-semibold rounded-full px-3 py-1.5
-                                        @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id) bg-blue-700 text-white
-                                        @elseif($activeBranchContext->isHq()) bg-slate-500 text-white
-                                        @else bg-emerald-600 text-white @endif'>
-                                        @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id)
-                                            👑 Main Corporate HQ
-                                        @elseif($activeBranchContext->isHq())
-                                            🏢 Regional HQ: {{ $activeBranchContext->name }}
-                                        @else
-                                            🩺 Retail Pharmacy: {{ $activeBranchContext->name }}
+                            @if($user->isGlobalRole())
+                                {{-- Global roles (admin, hq_inventory_manager, hq_hr_manager)
+                                     get an interactive dropdown: picking a different branch
+                                     POSTs to branch-context.switch to temporarily change their
+                                     active dashboard viewing context. Rendered even when
+                                     $activeBranchContext is null (e.g. a pre-existing admin
+                                     account whose branch_id was never backfilled after the HQ
+                                     auto-creation feature shipped), so the control is always
+                                     visible and self-service rather than silently hidden. --}}
+                                <form method='POST' action='{{ route("branch-context.switch") }}' class='inline-block'>
+                                    @csrf
+                                    <select
+                                        name='branch_id'
+                                        onchange='this.form.submit()'
+                                        class='text-xs font-semibold rounded-full pl-3 pr-7 py-1.5 border-0 cursor-pointer focus:ring-2 focus:ring-offset-1 focus:ring-blue-400
+                                            @if(!$activeBranchContext) bg-amber-500 text-white
+                                            @elseif($activeBranchContext->isHq() && !$activeBranchContext->parent_id) bg-blue-700 text-white
+                                            @elseif($activeBranchContext->isHq()) bg-slate-500 text-white
+                                            @else bg-emerald-600 text-white @endif'
+                                    >
+                                        @if(!$activeBranchContext)
+                                            <option value='' selected disabled>⚠️ No Branch Assigned</option>
                                         @endif
-                                    </span>
-                                @endif
+                                        @foreach(\App\Models\Branch::where('tenant_id', $user->tenant_id)->active()->orderBy('branch_type')->orderBy('name')->get() as $branchOption)
+                                            <option value='{{ $branchOption->id }}' {{ $activeBranchContext && $activeBranchContext->id === $branchOption->id ? 'selected' : '' }}>
+                                                @if($branchOption->isHq() && !$branchOption->parent_id)
+                                                    👑 Main Corporate HQ
+                                                @elseif($branchOption->isHq())
+                                                    🏢 Regional HQ: {{ $branchOption->name }}
+                                                @else
+                                                    🩺 Retail Pharmacy: {{ $branchOption->name }}
+                                                @endif
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                            @elseif($activeBranchContext)
+                                {{-- Branch-scoped roles (pharmacist, sales_staff, worker) get a
+                                     plain, non-interactive badge - they are always locked to their
+                                     own assigned (or HR-overridden) branch. Hidden entirely (same
+                                     as before) when they have no branch at all, since they can't
+                                     self-correct that - it needs an admin to assign one. --}}
+                                <span class='text-xs font-semibold rounded-full px-3 py-1.5
+                                    @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id) bg-blue-700 text-white
+                                    @elseif($activeBranchContext->isHq()) bg-slate-500 text-white
+                                    @else bg-emerald-600 text-white @endif'>
+                                    @if($activeBranchContext->isHq() && !$activeBranchContext->parent_id)
+                                        👑 Main Corporate HQ
+                                    @elseif($activeBranchContext->isHq())
+                                        🏢 Regional HQ: {{ $activeBranchContext->name }}
+                                    @else
+                                        🩺 Retail Pharmacy: {{ $activeBranchContext->name }}
+                                    @endif
+                                </span>
                             @endif
                             <span class='text-gray-600 text-sm'>{{ auth()->user()->name }}</span>
                             <div class='bg-green-500 rounded-full w-8 h-8 flex items-center justify-center'>
