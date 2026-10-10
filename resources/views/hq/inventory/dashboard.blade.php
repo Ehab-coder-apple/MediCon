@@ -48,6 +48,65 @@
             @endforelse
         </div>
 
+        {{-- Incoming Stock Requisitions from retail branches --}}
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm">
+            <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+                <h3 class="text-sm font-semibold text-slate-700">Incoming Requisitions</h3>
+                <span class="text-xs text-slate-400">{{ $incomingRequisitions->count() }} pending</span>
+            </div>
+            <div class="p-2">
+                @if ($incomingRequisitions->isNotEmpty())
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr class="text-left text-xs uppercase tracking-wide text-slate-400">
+                                    <th class="px-3 py-2 font-medium">Branch</th>
+                                    <th class="px-3 py-2 font-medium">Item Requested</th>
+                                    <th class="px-3 py-2 font-medium">Qty</th>
+                                    <th class="px-3 py-2 font-medium">Requested By</th>
+                                    <th class="px-3 py-2 font-medium">Notes</th>
+                                    <th class="px-3 py-2 font-medium text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach ($incomingRequisitions as $requisition)
+                                    <tr>
+                                        <td class="px-3 py-2.5 text-slate-700">{{ $requisition->branch->name ?? '—' }}</td>
+                                        <td class="px-3 py-2.5 font-medium text-slate-900">
+                                            {{ $requisition->display_name }}
+                                            @if (! $requisition->product_id)
+                                                <span class="ml-1 px-1.5 py-0.5 text-xs rounded bg-amber-50 text-amber-700">New drug - not in catalog</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-3 py-2.5 text-slate-700">{{ number_format($requisition->requested_quantity) }}</td>
+                                        <td class="px-3 py-2.5 text-slate-500">{{ $requisition->creator->name ?? '—' }}</td>
+                                        <td class="px-3 py-2.5 text-slate-500 max-w-xs truncate" title="{{ $requisition->notes }}">{{ $requisition->notes ?: '—' }}</td>
+                                        <td class="px-3 py-2.5 text-right whitespace-nowrap">
+                                            <form method="POST" action="{{ route('branch-requisitions.approve', $requisition) }}" style="display:inline;" onsubmit="return confirm('Approve this requisition? A Stock Transfer Order will be created from the Central Warehouse to the branch backroom.');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="text-emerald-600 hover:text-emerald-900 font-medium mr-3" {{ $requisition->product_id ? '' : 'disabled title="Add this drug to the product catalog first"' }}>Approve</button>
+                                            </form>
+                                            <form method="POST" action="{{ route('branch-requisitions.reject', $requisition) }}" style="display:inline;" onsubmit="return confirm('Reject this requisition?');">
+                                                @csrf
+                                                @method('PATCH')
+                                                <button type="submit" class="text-red-600 hover:text-red-900 font-medium">Reject</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="flex flex-col items-center justify-center h-32 text-slate-400">
+                        <i class="fa-solid fa-clipboard-list text-3xl mb-2"></i>
+                        <p class="text-sm">No incoming requisitions from branches</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+
         {{-- Pending / In-Transit Stock Transfer Orders --}}
         <div class="bg-white border border-slate-200 rounded-lg shadow-sm">
             <div class="flex items-center justify-between px-5 py-3 border-b border-slate-200">

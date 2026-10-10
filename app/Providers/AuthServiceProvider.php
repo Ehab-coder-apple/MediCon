@@ -154,5 +154,18 @@ class AuthServiceProvider extends ServiceProvider
         Gate::define('switch-branch-viewing-context', function (User $user) {
             return $user->isGlobalRole();
         });
+
+        // HQ Inventory Manager (or admin) reviews incoming stock
+        // requisitions from retail branches and approves/rejects them.
+        // Submitting a requisition itself (BranchRequisitionController::store)
+        // instead reuses the existing 'manage-inventory' Gate, same as the
+        // local backroom-to-shelf replenishment endpoint, since any branch
+        // staff who can manage local inventory should be able to ask HQ for
+        // more stock.
+        Gate::define('manage-branch-requisitions', function (User $user) {
+            return $user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER)
+                || $user->hasRole('admin')
+                || $user->hasPermission('manage_branch_requisitions');
+        });
     }
 }

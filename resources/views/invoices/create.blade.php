@@ -127,13 +127,24 @@
                                     <!-- Product Grid -->
                                     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 h-full overflow-y-auto pr-2" id="productGrid">
                                         @foreach($products as $product)
+                                            @php
+                                                $branchQty = $product->branch_stock_quantity ?? $product->active_quantity;
+                                                $branchExpiry = $product->branch_nearest_expiry ?? null;
+                                                $daysToExpiry = $branchExpiry ? now()->diffInDays($branchExpiry, false) : null;
+                                                // Expiry color coding: Red when expiring within 30 days (or already
+                                                // expired), Amber within 90 days, otherwise the default gray text.
+                                                $expiryColorClass = 'text-gray-500';
+                                                if (!is_null($daysToExpiry)) {
+                                                    $expiryColorClass = $daysToExpiry <= 30 ? 'text-red-600 font-semibold' : ($daysToExpiry <= 90 ? 'text-amber-600 font-semibold' : 'text-gray-500');
+                                                }
+                                            @endphp
                                             <div class="product-card group bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-3 hover:border-indigo-300 hover:shadow-2xl transition-all duration-300 cursor-pointer transform hover:scale-105 hover:-translate-y-2"
                                                  data-product-id="{{ $product->id }}"
                                                  data-product-name="{{ $product->name }}"
                                                  data-product-code="{{ $product->code }}"
                                                  data-product-price="{{ $product->selling_price }}"
-                                                 data-product-stock="{{ $product->active_quantity }}"
-                                                 onclick="console.log('Direct onclick fired for {{ $product->name }}'); addProductToInvoice({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->code }}', {{ $product->selling_price }}, {{ $product->active_quantity }});">
+                                                 data-product-stock="{{ $branchQty }}"
+                                                 onclick="console.log('Direct onclick fired for {{ $product->name }}'); addProductToInvoice({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ $product->code }}', {{ $product->selling_price }}, {{ $branchQty }});">
 
                                                 <!-- Product Info -->
                                                 <div class="space-y-1">
@@ -148,8 +159,18 @@
                                                             ${{ number_format($product->selling_price, 2) }}
                                                         </div>
                                                         <div class="text-xs text-gray-500 mt-0.5">
-                                                            Stock: <span class="font-semibold {{ $product->active_quantity > 0 ? 'text-green-600' : 'text-red-600' }}">{{ $product->active_quantity }}</span>
+                                                            Stock: <span class="font-semibold {{ $branchQty > 0 ? 'text-green-600' : 'text-red-600' }}">{{ $branchQty }}</span>
                                                         </div>
+                                                        @if($product->branch_batch_number || $branchExpiry)
+                                                            <div class="text-xs mt-0.5 {{ $expiryColorClass }}">
+                                                                @if($product->branch_batch_number)
+                                                                    Batch: {{ $product->branch_batch_number }}
+                                                                @endif
+                                                                @if($branchExpiry)
+                                                                    &middot; Exp: {{ \Carbon\Carbon::parse($branchExpiry)->format('M j, Y') }}
+                                                                @endif
+                                                            </div>
+                                                        @endif
                                                     </div>
 
                                                     <!-- Add Button -->

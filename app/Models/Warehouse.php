@@ -191,6 +191,32 @@ class Warehouse extends Model
     }
 
     /**
+     * Get or create the tenant's single Central (HQ Main) warehouse,
+     * sourced from its root Corporate HQ branch (branch_type = HQ,
+     * parent_id = null). Used to auto-source stock transfer orders
+     * instantiated from an approved branch requisition - see
+     * BranchRequisitionController::approve().
+     *
+     * Throws if the tenant has no root HQ branch yet (e.g. a very old
+     * tenant predating the HQ auto-creation feature whose root HQ branch
+     * hasn't been backfilled - see BranchContextService's admin fallback
+     * for the equivalent read-side handling).
+     */
+    public static function getOrCreateTenantCentralWarehouse(int $tenantId): self
+    {
+        $rootHq = Branch::where('tenant_id', $tenantId)
+            ->where('branch_type', Branch::TYPE_HQ)
+            ->whereNull('parent_id')
+            ->first();
+
+        if (! $rootHq) {
+            throw new \RuntimeException('This tenant has no root Corporate HQ branch to source Central warehouse stock from. Please create one first via Branch Management.');
+        }
+
+        return static::getOrCreateHqWarehouse($tenantId, $rootHq);
+    }
+
+    /**
      * Validate that a warehouse type is allowed for the given branch:
      *  - Central types (HQ Main Warehouse) require an HQ branch.
      *  - Local types (Backroom Warehouse / Dispensing Shelf) require a

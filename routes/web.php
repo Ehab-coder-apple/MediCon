@@ -227,6 +227,23 @@ Route::middleware([
         Route::patch('/{stockTransferOrder}/receive', [StockTransferOrderController::class, 'receive'])->name('receive');
     });
 
+    // Same-branch local inventory: Backroom (main) -> Dispensing Shelf
+    // (on_shelf) replenishment, scoped to the operator's active branch via
+    // BranchContextService. Gate-protected inside the controller itself
+    // ('manage-inventory'), same as the rest of local stock management.
+    Route::post('/local-inventory/replenish', [App\Http\Controllers\LocalInventoryController::class, 'replenish'])->name('local-inventory.replenish');
+
+    // Retail-to-HQ stock requisitions: a branch asks HQ to send more stock.
+    // Submission is Gate-protected as 'manage-inventory' (any branch staff
+    // who can manage local inventory); approve/reject are Gate-protected as
+    // 'manage-branch-requisitions' (HQ Inventory Manager / admin) inside the
+    // controller, mirroring the stock-transfer-orders group above.
+    Route::prefix('branch-requisitions')->name('branch-requisitions.')->group(function () {
+        Route::post('/', [App\Http\Controllers\BranchRequisitionController::class, 'store'])->name('store');
+        Route::patch('/{branchRequisition}/approve', [App\Http\Controllers\BranchRequisitionController::class, 'approve'])->name('approve');
+        Route::patch('/{branchRequisition}/reject', [App\Http\Controllers\BranchRequisitionController::class, 'reject'])->name('reject');
+    });
+
     // Temporary HR branch allocation overrides (HQ HR Manager). Gate-
     // protected per action; consumed by the hq-hr.dashboard view below.
     Route::prefix('branch-allocation-overrides')->name('branch-allocation-overrides.')->group(function () {

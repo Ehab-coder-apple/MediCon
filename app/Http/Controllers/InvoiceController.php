@@ -123,20 +123,22 @@ class InvoiceController extends Controller
             ->orderBy('name')
             ->get();
 
-        // Use ProductDisplayService to get products based on configured strategy
+        // Resolve the branch this operator is actually working under right
+        // now (a temporary HR allocation override takes priority over their
+        // permanent branch_id) so the POS header/branding, AND the product
+        // catalog below, both reflect where sales are really being recorded
+        // for, rather than reading $user->branch_id directly.
+        $activeBranch = BranchContextService::getActiveUserBranchContext($user);
+        $isUnderBranchOverride = BranchContextService::isUnderOverride($user);
+
+        // Use ProductDisplayService to get products based on configured
+        // strategy, strictly isolated to this branch's On Shelf warehouse
+        // stock (see ProductDisplayService::getDisplayProducts()).
         $displayService = new ProductDisplayService();
-        $products = $displayService->getDisplayProducts($tenantId);
+        $products = $displayService->getDisplayProducts($tenantId, $activeBranch?->id);
 
         // Active shift for this operator drives the on-screen terminal lock/indicator.
         $activeShift = Shift::currentFor($user);
-
-        // Resolve the branch this operator is actually working under right
-        // now (a temporary HR allocation override takes priority over their
-        // permanent branch_id) so the POS header/branding always reflects
-        // where sales are really being recorded for, rather than reading
-        // $user->branch_id directly.
-        $activeBranch = BranchContextService::getActiveUserBranchContext($user);
-        $isUnderBranchOverride = BranchContextService::isUnderOverride($user);
 
         return view('invoices.create', compact('customers', 'products', 'activeShift', 'activeBranch', 'isUnderBranchOverride'));
     }

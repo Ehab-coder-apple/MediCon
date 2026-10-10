@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BranchRequisition;
 use App\Models\StockTransferOrder;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
@@ -38,6 +39,14 @@ class HqInventoryDashboardController extends Controller
             ->limit(10)
             ->get();
 
-        return view('hq.inventory.dashboard', compact('centralWarehouses', 'pendingOrders', 'recentOrders'));
+        // Incoming stock requisitions from retail branches, awaiting HQ
+        // Inventory Manager review (see BranchRequisitionController).
+        $incomingRequisitions = BranchRequisition::where('tenant_id', $tenantId)
+            ->pending()
+            ->with(['branch', 'product', 'creator'])
+            ->orderBy('created_at')
+            ->get();
+
+        return view('hq.inventory.dashboard', compact('centralWarehouses', 'pendingOrders', 'recentOrders', 'incomingRequisitions'));
     }
 }
