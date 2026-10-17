@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\BranchRequisition;
+use App\Models\Invoice;
 use App\Models\Product;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
 use App\Services\BranchContextService;
 use Illuminate\Http\Request;
 
@@ -11,13 +14,47 @@ class PharmacistDashboardController extends Controller
 {
     public function index()
     {
-        // Sample data for pharmacist dashboard
-        $salesToday = 25;
-        $inventoryAlerts = 5;
-        $totalMedicines = 150;
-
         $user = auth()->user();
         $activeBranch = BranchContextService::getActiveUserBranchContext($user);
+
+        // Branch-scoped dashboard stats. These used to be hardcoded sample
+        // values; now they reflect only this branch's own sales/stock, not
+        // the tenant-wide totals (e.g. a brand-new branch with 2 products
+        // and no sales yet must show 0/0/2, not another branch's or HQ's
+        // numbers).
+        $salesToday = 0;
+        $inventoryAlerts = 0;
+        $totalMedicines = 0;
+
+        if ($activeBranch) {
+            $salesToday = Invoice::where('tenant_id', $user->tenant_id)
+                ->whereDate('invoice_date', today())
+                ->where('status', '!=', 'draft')
+                ->whereHas('user', fn ($q) => $q->where('branch_id', $activeBranch->id))
+                ->count();
+
+            $branchWarehouseIds = Warehouse::where('tenant_id', $user->tenant_id)
+                ->where('branch_id', $activeBranch->id)
+                ->whereIn('type', [Warehouse::TYPE_MAIN, Warehouse::TYPE_ON_SHELF])
+                ->pluck('id');
+
+            // Quantity actually on hand at this branch, per product - not
+            // the tenant-wide Product::active_quantity (see Product model).
+            $branchStockByProduct = WarehouseStock::whereIn('warehouse_id', $branchWarehouseIds)
+                ->selectRaw('product_id, SUM(quantity) as qty')
+                ->groupBy('product_id')
+                ->pluck('qty', 'product_id');
+
+            $stockedProducts = Product::where('tenant_id', $user->tenant_id)
+                ->where('is_active', true)
+                ->get(['id', 'alert_quantity'])
+                ->filter(fn ($product) => ($branchStockByProduct[$product->id] ?? 0) > 0);
+
+            $totalMedicines = $stockedProducts->count();
+            $inventoryAlerts = $stockedProducts
+                ->filter(fn ($product) => ($branchStockByProduct[$product->id] ?? 0) <= $product->alert_quantity)
+                ->count();
+        }
 
         // Product catalog for the "Request Stock from HQ" and "Replenish
         // Shelf from Backroom" slide-over panels.
