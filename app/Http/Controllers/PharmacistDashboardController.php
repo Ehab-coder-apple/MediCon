@@ -85,9 +85,15 @@ class PharmacistDashboardController extends Controller
         ));
     }
 
+    /**
+     * "Check Inventory" used to render a hardcoded placeholder table
+     * (fake Paracetamol/Aspirin rows, same for every branch). Redirect to
+     * the real, branch-scoped product inventory list instead (My Branch
+     * Stock + HQ Availability columns - see ProductController::index()).
+     */
     public function inventory()
     {
-        return view('pharmacist.inventory');
+        return redirect()->route('pharmacist.products.index');
     }
 
 
