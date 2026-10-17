@@ -237,22 +237,36 @@ class StockReceivingController extends Controller
             ]);
         }
 
-        // Ensure received goods warehouse exists for this tenant/branch
+        // Credit the tenant's Central/HQ Main warehouse so received stock is
+        // immediately visible on the HQ Inventory Dashboard and can be
+        // requisitioned by branches. Previously this credited a hidden
+        // "Received Goods" staging warehouse that nothing ever moved stock
+        // out of, so Product Management's legacy Stock column (summed from
+        // Batch.quantity, tenant-wide) showed the new units while Central
+        // Warehouse Stock (scoped to the hq_main warehouse) stayed at 0.
         $user = auth()->user();
         $tenantId = $user?->tenant_id ?? $product->tenant_id ?? app('current_tenant')?->id;
         $branchId = $user?->branch_id;
 
         if ($tenantId) {
-            $receivedWarehouse = Warehouse::getOrCreateSystemWarehouse(
-                $tenantId,
-                $branchId,
-                Warehouse::TYPE_RECEIVED
-            );
+            try {
+                $destinationWarehouse = Warehouse::getOrCreateTenantCentralWarehouse($tenantId);
+            } catch (\RuntimeException $e) {
+                // Tenant has no root Corporate HQ branch set up yet (e.g.
+                // single-location pharmacy without the branch hierarchy
+                // feature) - fall back to the old received-goods staging
+                // warehouse rather than failing the whole receipt.
+                $destinationWarehouse = Warehouse::getOrCreateSystemWarehouse(
+                    $tenantId,
+                    $branchId,
+                    Warehouse::TYPE_RECEIVED
+                );
+            }
 
-            // Create or update warehouse stock for this batch in the received warehouse
+            // Create or update warehouse stock for this batch in the destination warehouse
             $warehouseStock = WarehouseStock::firstOrNew([
                 'tenant_id' => $tenantId,
-                'warehouse_id' => $receivedWarehouse->id,
+                'warehouse_id' => $destinationWarehouse->id,
                 'product_id' => $product->id,
                 'batch_id' => $batch->id,
             ]);

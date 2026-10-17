@@ -553,19 +553,26 @@ class PurchaseController extends Controller
             ]);
         }
 
-        // Ensure received goods warehouse exists
+        // Credit the tenant's Central/HQ Main warehouse (see
+        // StockReceivingController::processStockReceivingItem for why -
+        // the old "Received Goods" staging warehouse was a dead end that
+        // never fed Central Warehouse Stock).
         $branchId = auth()->user()?->branch_id;
         if ($tenantId) {
-            $receivedWarehouse = \App\Models\Warehouse::getOrCreateSystemWarehouse(
-                $tenantId,
-                $branchId,
-                \App\Models\Warehouse::TYPE_RECEIVED
-            );
+            try {
+                $destinationWarehouse = \App\Models\Warehouse::getOrCreateTenantCentralWarehouse($tenantId);
+            } catch (\RuntimeException $e) {
+                $destinationWarehouse = \App\Models\Warehouse::getOrCreateSystemWarehouse(
+                    $tenantId,
+                    $branchId,
+                    \App\Models\Warehouse::TYPE_RECEIVED
+                );
+            }
 
             // Create or update warehouse stock
             $warehouseStock = \App\Models\WarehouseStock::firstOrNew([
                 'tenant_id' => $tenantId,
-                'warehouse_id' => $receivedWarehouse->id,
+                'warehouse_id' => $destinationWarehouse->id,
                 'product_id' => $product->id,
                 'batch_id' => $batch->id,
             ]);
