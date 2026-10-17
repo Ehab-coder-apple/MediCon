@@ -991,10 +991,6 @@ class ProductController extends Controller
         $onShelfQty = (int) ($productData['on_shelf_quantity'] ?? 0);
         $warehouseQty = (int) ($productData['warehouse_quantity'] ?? 0);
 
-        if ($onShelfQty <= 0 && $warehouseQty <= 0) {
-            return;
-        }
-
         $user = auth()->user();
         $tenantId = $user?->tenant_id
             ?? (app()->bound('current_tenant') ? app('current_tenant')?->id : null)
@@ -1003,6 +999,28 @@ class ProductController extends Controller
 
         if (! $tenantId) {
             // No tenant context: keep batch-only tracking.
+            return;
+        }
+
+        if ($onShelfQty <= 0 && $warehouseQty <= 0) {
+            // Import file didn't specify where the stock physically sits
+            // (warehouse_quantity/on_shelf_quantity are optional columns).
+            // Default the whole batch quantity into the tenant's Central
+            // (HQ Main) warehouse rather than leaving it completely
+            // untracked by any warehouse - otherwise Batch.quantity shows a
+            // number in Product Management's legacy Stock column, but
+            // Central Warehouse Stock and branch requisitions never see it.
+            $initialQty = (int) ($productData['initial_quantity'] ?? 0);
+
+            if ($initialQty > 0) {
+                try {
+                    $central = Warehouse::getOrCreateTenantCentralWarehouse($tenantId);
+                    $this->addWarehouseStock($tenantId, $central->id, $product->id, $batch->id, $initialQty);
+                } catch (\RuntimeException $e) {
+                    // No root Corporate HQ branch yet - keep batch-only tracking.
+                }
+            }
+
             return;
         }
 
