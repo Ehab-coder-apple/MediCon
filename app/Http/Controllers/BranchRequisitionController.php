@@ -9,6 +9,7 @@ use App\Services\StockTransferOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class BranchRequisitionController extends Controller
 {
@@ -30,6 +31,13 @@ class BranchRequisitionController extends Controller
 
         if (! $branch || ! $branch->isRetail()) {
             return $this->fail($request, 'Stock requisitions can only be submitted from a retail pharmacy branch.');
+        }
+
+        // Odoo-style batch requisition grid on the pharmacist dashboard:
+        // one "Submit Bulk Request" click posts every product+quantity the
+        // pharmacist dropped into the cart in a single array payload.
+        if ($request->has('items')) {
+            return $this->storeBulk($request, $user, $branch);
         }
 
         $validated = $request->validate([
@@ -59,6 +67,39 @@ class BranchRequisitionController extends Controller
         }
 
         return back()->with('success', 'Stock requisition submitted to HQ successfully.');
+    }
+
+    /**
+     * Create one BranchRequisition row per cart line in a single DB
+     * transaction - either all items are recorded, or none are, so a
+     * failure partway through never leaves HQ with a half-submitted batch.
+     */
+    private function storeBulk(Request $request, $user, $branch): JsonResponse
+    {
+        $validated = $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.requested_quantity' => 'required|integer|min:1',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $requisitions = DB::transaction(function () use ($validated, $user, $branch) {
+            return collect($validated['items'])->map(fn (array $item) => BranchRequisition::create([
+                'tenant_id' => $user->tenant_id,
+                'branch_id' => $branch->id,
+                'product_id' => $item['product_id'],
+                'custom_product_name' => null,
+                'requested_quantity' => $item['requested_quantity'],
+                'status' => BranchRequisition::STATUS_PENDING,
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => $user->id,
+            ]));
+        });
+
+        return response()->json([
+            'message' => $requisitions->count() . ' item(s) requested from HQ successfully.',
+            'requisitions' => $requisitions,
+        ], 201);
     }
 
     /**
