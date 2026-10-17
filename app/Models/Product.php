@@ -131,6 +131,79 @@ class Product extends Model
     }
 
     /**
+     * Get stock quantity physically present in the viewer's own active
+     * branch (Local Backroom Storage + Dispensing Shelf combined, i.e.
+     * everything NOT sitting in the tenant's Central/HQ warehouse).
+     *
+     * active_quantity sums the raw Batch.quantity column, which never
+     * changes on a warehouse-to-warehouse transfer (only WarehouseStock
+     * rows move) - so it reflects the tenant-wide total regardless of
+     * which branch is looking at it. Retail branch inventory screens
+     * must use this branch-scoped figure instead, so a branch that
+     * hasn't yet received any stock from HQ correctly shows 0, not HQ's
+     * on-hand quantity.
+     */
+    public function getBranchQuantityAttribute(): int
+    {
+        $user = auth()->user();
+        $tenantId = $user?->tenant_id ?? $this->tenant_id;
+        $branchId = $user ? \App\Services\BranchContextService::getActiveUserBranchId($user) : null;
+
+        if (! $tenantId || ! $branchId) {
+            // No branch context (e.g. HQ/admin catalog-wide view) - fall
+            // back to the tenant-wide total.
+            return $this->active_quantity;
+        }
+
+        // Legacy/imported products never placed into any warehouse are
+        // tracked at the batch level only; keep reporting their
+        // batch-based stock so they don't appear to vanish.
+        if (! $this->warehouseStocks()->exists()) {
+            return $this->active_quantity;
+        }
+
+        $branchWarehouseIds = Warehouse::where('tenant_id', $tenantId)
+            ->where('branch_id', $branchId)
+            ->whereIn('type', [Warehouse::TYPE_MAIN, Warehouse::TYPE_ON_SHELF])
+            ->pluck('id');
+
+        if ($branchWarehouseIds->isEmpty()) {
+            return 0;
+        }
+
+        return (int) $this->warehouseStocks()
+            ->whereIn('warehouse_id', $branchWarehouseIds)
+            ->sum('quantity');
+    }
+
+    /**
+     * Get stock quantity available in the tenant's Central (HQ Main)
+     * warehouse. Exposed read-only to retail branches so they can check
+     * HQ availability (e.g. before submitting a stock requisition)
+     * without it being counted as part of their own branch_quantity.
+     */
+    public function getCentralQuantityAttribute(): int
+    {
+        $tenantId = auth()->user()?->tenant_id ?? $this->tenant_id;
+
+        if (! $tenantId || ! $this->warehouseStocks()->exists()) {
+            return 0;
+        }
+
+        $centralWarehouseIds = Warehouse::where('tenant_id', $tenantId)
+            ->whereIn('type', Warehouse::CENTRAL_TYPES)
+            ->pluck('id');
+
+        if ($centralWarehouseIds->isEmpty()) {
+            return 0;
+        }
+
+        return (int) $this->warehouseStocks()
+            ->whereIn('warehouse_id', $centralWarehouseIds)
+            ->sum('quantity');
+    }
+
+    /**
      * Check if product is low in stock
      */
     public function getIsLowStockAttribute(): bool

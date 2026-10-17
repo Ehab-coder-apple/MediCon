@@ -74,7 +74,16 @@ class ProductController extends Controller
         $subcategories = \App\Models\Subcategory::active()->ordered()->get();
         $locations = \App\Models\Location::active()->ordered()->get();
 
-        return view('products.index', compact('products', 'categories', 'subcategories', 'locations'));
+        // Retail branch staff (e.g. pharmacist) see branch-scoped stock
+        // (their own Backroom + Shelf, via Product::branch_quantity) and a
+        // separate read-only HQ availability figure (Product::central_
+        // quantity), instead of the tenant-wide active_quantity - see
+        // Product model for why active_quantity alone is misleading here.
+        $user = $request->user();
+        $activeBranch = $user ? \App\Services\BranchContextService::getActiveUserBranchContext($user) : null;
+        $isRetailBranchView = (bool) ($activeBranch && $activeBranch->isRetail());
+
+        return view('products.index', compact('products', 'categories', 'subcategories', 'locations', 'isRetailBranchView'));
     }
 
     /**

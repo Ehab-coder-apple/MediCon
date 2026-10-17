@@ -170,8 +170,13 @@
                                         Pricing
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Stock
+                                        {{ $isRetailBranchView ? 'My Branch Stock' : 'Stock' }}
                                     </th>
+                                    @if($isRetailBranchView)
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            HQ Availability
+                                        </th>
+                                    @endif
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         DOH
                                     </th>
@@ -234,13 +239,22 @@
                                             Net Margin: {{ number_format($product->net_profit_margin, 1) }}%
                                         </div>
                                     </td>
+                                    @php
+                                        $displayQuantity = $isRetailBranchView ? $product->branch_quantity : $product->active_quantity;
+                                    @endphp
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900">{{ $product->active_quantity }}</div>
-                                        @if($product->is_low_stock)
+                                        <div class="text-sm text-gray-900">{{ $displayQuantity }}</div>
+                                        @if($displayQuantity <= $product->alert_quantity)
                                             <div class="text-xs text-red-500">Low Stock!</div>
                                         @endif
                                         <div class="text-xs text-gray-500">Alert: {{ $product->alert_quantity }}</div>
                                     </td>
+                                    @if($isRetailBranchView)
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-700">{{ $product->central_quantity }}</div>
+                                            <div class="text-xs text-gray-400">at HQ Central Warehouse</div>
+                                        </td>
+                                    @endif
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @php
                                             $doh = $product->days_on_hand ?? $product->calculated_days_on_hand;
