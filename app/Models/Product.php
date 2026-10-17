@@ -332,7 +332,13 @@ class Product extends Model
      */
     public function getDohStatusAttribute(): string
     {
-        $doh = $this->days_on_hand ?? $this->calculated_days_on_hand;
+        // Always use the live calculation, not the stored days_on_hand
+        // column: that column is only a manually-set target/default (e.g.
+        // max(alert_quantity * 2, 30) at creation time) and nothing
+        // refreshes it automatically, so it goes stale the moment stock
+        // actually changes - e.g. still showing '30 days' after stock hits
+        // 0. calculated_days_on_hand correctly reflects current stock.
+        $doh = $this->calculated_days_on_hand;
 
         if ($doh <= 7) {
             return 'critical'; // Red - Critical low

@@ -257,7 +257,10 @@
                                     @endif
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @php
-                                            $doh = $product->days_on_hand ?? $product->calculated_days_on_hand;
+                                            // Always the live calculation (see Product::getDohStatusAttribute) -
+                                            // the stored days_on_hand column is a stale manual default that
+                                            // never updates when stock actually drops to 0.
+                                            $doh = $product->calculated_days_on_hand;
                                             $dohStatus = $product->doh_status;
                                         @endphp
                                         <div class="text-sm font-medium text-gray-900">
