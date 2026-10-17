@@ -57,11 +57,43 @@ class PharmacistDashboardController extends Controller
         }
 
         // Product catalog for the "Request Stock from HQ" and "Replenish
-        // Shelf from Backroom" slide-over panels.
+        // Shelf from Backroom" slide-over panels. "Request Stock from HQ"
+        // specifically needs items HQ can actually fulfil, so it's merged
+        // with products that have real stock in the tenant's Central (HQ
+        // Main) warehouse - not just Product.is_active, which only reflects
+        // whether an item is enabled for retail sale and can be unrelated
+        // to (or even mistakenly out of sync with) what HQ physically holds.
         $requisitionProducts = Product::where('tenant_id', $user->tenant_id)
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
+
+        try {
+            $centralWarehouse = Warehouse::getOrCreateTenantCentralWarehouse($user->tenant_id);
+
+            $centralStockedProductIds = WarehouseStock::where('warehouse_id', $centralWarehouse->id)
+                ->where('quantity', '>', 0)
+                ->distinct()
+                ->pluck('product_id');
+
+            if ($centralStockedProductIds->isNotEmpty()) {
+                $hqRequisitionProducts = Product::where('tenant_id', $user->tenant_id)
+                    ->whereIn('id', $centralStockedProductIds)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'code']);
+
+                // Merge in anything HQ physically stocks that the is_active
+                // filter above missed, keyed by id to avoid duplicates.
+                $requisitionProducts = $requisitionProducts
+                    ->keyBy('id')
+                    ->union($hqRequisitionProducts->keyBy('id'))
+                    ->sortBy('name')
+                    ->values();
+            }
+        } catch (\RuntimeException $e) {
+            // No root Corporate HQ branch yet - fall back to the is_active
+            // catalog list above.
+        }
 
         // This branch's own pending/recent requisitions, so the pharmacist
         // can see what they've already asked HQ for and its status.
