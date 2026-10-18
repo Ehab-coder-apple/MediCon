@@ -17,7 +17,7 @@ class LeaveManagementController extends Controller
      */
     public function index(Request $request): View
     {
-        $this->authorize('access-admin-dashboard');
+        $this->authorize('access-personnel-tools');
 
         // Tenant isolation: same gap as Product/Batch/Attendance - without
         // this, /admin/leaves listed every tenant's leave requests together.
@@ -63,7 +63,7 @@ class LeaveManagementController extends Controller
      */
     public function show(Leave $leave): View
     {
-        $this->authorize('access-admin-dashboard');
+        $this->authorize('access-personnel-tools');
         abort_unless($leave->tenant_id === auth()->user()->tenant_id, 403);
 
         $leave->load(['user', 'leaveType', 'approvedBy']);
@@ -76,7 +76,7 @@ class LeaveManagementController extends Controller
      */
     public function approve(Leave $leave, Request $request): RedirectResponse
     {
-        $this->authorize('access-admin-dashboard');
+        $this->authorize('access-personnel-tools');
         abort_unless($leave->tenant_id === auth()->user()->tenant_id, 403);
 
         $validated = $request->validate([
@@ -94,7 +94,7 @@ class LeaveManagementController extends Controller
      */
     public function reject(Leave $leave, Request $request): RedirectResponse
     {
-        $this->authorize('access-admin-dashboard');
+        $this->authorize('access-personnel-tools');
         abort_unless($leave->tenant_id === auth()->user()->tenant_id, 403);
 
         $validated = $request->validate([
@@ -112,7 +112,7 @@ class LeaveManagementController extends Controller
      */
     public function export(Request $request)
     {
-        $this->authorize('access-admin-dashboard');
+        $this->authorize('access-personnel-tools');
 
         $query = Leave::with(['user', 'leaveType'])
             ->where('tenant_id', auth()->user()->tenant_id);

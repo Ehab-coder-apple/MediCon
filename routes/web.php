@@ -282,6 +282,22 @@ Route::middleware([
             Route::get('/export/csv', [App\Http\Controllers\AttendanceController::class, 'export'])->name('export');
             Route::get('/statistics/view', [App\Http\Controllers\AttendanceController::class, 'statistics'])->name('statistics');
         });
+
+        // Leave Management Routes: shared with HQ HR Manager, same as
+        // Users/Attendance above.
+        Route::prefix('leaves')->name('leaves.')->group(function () {
+            Route::get('/', [App\Http\Controllers\LeaveManagementController::class, 'index'])->name('index');
+            Route::get('/{leave}', [App\Http\Controllers\LeaveManagementController::class, 'show'])->name('show');
+            Route::post('/{leave}/approve', [App\Http\Controllers\LeaveManagementController::class, 'approve'])->name('approve');
+            Route::post('/{leave}/reject', [App\Http\Controllers\LeaveManagementController::class, 'reject'])->name('reject');
+            Route::get('/export/csv', [App\Http\Controllers\LeaveManagementController::class, 'export'])->name('export');
+        });
+
+        // Activity Logs routes: shared with HQ HR Manager (global oversight
+        // role), same as Users/Attendance above.
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
+        Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity-logs.export');
+        Route::post('/activity-logs/clear-old', [ActivityLogController::class, 'clearOld'])->name('activity-logs.clear-old');
     });
 
     Route::middleware(['can:access-admin-dashboard'])->prefix('admin')->name('admin.')->group(function () {
@@ -340,15 +356,6 @@ Route::middleware([
         Route::get('/products/{product}/quick-add-stock', [StockReceivingController::class, 'quickAdd'])->name('stock-receiving.quick-add');
         Route::post('/products/{product}/quick-add-stock', [StockReceivingController::class, 'processQuickAdd'])->name('stock-receiving.process-quick-add');
         Route::get('/api/products/{product}/details', [StockReceivingController::class, 'getProductDetails'])->name('api.products.details');
-
-        // Leave Management Routes
-        Route::prefix('leaves')->name('leaves.')->group(function () {
-            Route::get('/', [App\Http\Controllers\LeaveManagementController::class, 'index'])->name('index');
-            Route::get('/{leave}', [App\Http\Controllers\LeaveManagementController::class, 'show'])->name('show');
-            Route::post('/{leave}/approve', [App\Http\Controllers\LeaveManagementController::class, 'approve'])->name('approve');
-            Route::post('/{leave}/reject', [App\Http\Controllers\LeaveManagementController::class, 'reject'])->name('reject');
-            Route::get('/export/csv', [App\Http\Controllers\LeaveManagementController::class, 'export'])->name('export');
-        });
 
         // Branch Management Routes
         Route::resource('branches', App\Http\Controllers\BranchManagementController::class);
@@ -440,11 +447,6 @@ Route::middleware([
         Route::post('/product-display-settings/featured', [ProductDisplaySettingsController::class, 'addFeaturedProduct'])->name('product-display-settings.add-featured');
         Route::delete('/product-display-settings/featured/{featuredProduct}', [ProductDisplaySettingsController::class, 'removeFeaturedProduct'])->name('product-display-settings.remove-featured');
         Route::post('/product-display-settings/featured/reorder', [ProductDisplaySettingsController::class, 'reorderFeaturedProducts'])->name('product-display-settings.reorder-featured');
-
-        // Activity Logs routes
-        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
-        Route::get('/activity-logs/export', [ActivityLogController::class, 'export'])->name('activity-logs.export');
-        Route::post('/activity-logs/clear-old', [ActivityLogController::class, 'clearOld'])->name('activity-logs.clear-old');
 
         // WhatsApp Settings routes (Legacy)
         Route::get('/settings/whatsapp', [TenantWhatsAppSettingsController::class, 'show'])->name('whatsapp.show');
