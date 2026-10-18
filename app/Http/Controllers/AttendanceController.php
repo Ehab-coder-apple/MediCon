@@ -19,7 +19,11 @@ class AttendanceController extends Controller
     {
         $this->authorize('viewAny', Attendance::class);
 
-        $query = Attendance::with(['user', 'branch', 'tenant']);
+        // Tenant isolation: without this, /admin/attendance listed every
+        // tenant's attendance records together (same gap as
+        // ProductController/BatchController - see their fix commits).
+        $query = Attendance::with(['user', 'branch', 'tenant'])
+            ->where('tenant_id', $request->user()->tenant_id);
 
         // Filter by date range
         if ($request->filled('start_date')) {
@@ -58,8 +62,9 @@ class AttendanceController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $users = User::where('role_id', '!=', 1)->get(); // Exclude admins
-        $branches = Branch::active()->get();
+        $users = User::where('tenant_id', $request->user()->tenant_id)
+            ->where('role_id', '!=', 1)->get(); // Exclude admins
+        $branches = Branch::where('tenant_id', $request->user()->tenant_id)->active()->get();
 
         return view('admin.attendance.index', compact('attendances', 'users', 'branches'));
     }
@@ -83,7 +88,8 @@ class AttendanceController extends Controller
     {
         $this->authorize('viewAny', Attendance::class);
 
-        $query = Attendance::with(['user', 'branch']);
+        $query = Attendance::with(['user', 'branch'])
+            ->where('tenant_id', $request->user()->tenant_id);
 
         // Apply same filters as index
         if ($request->filled('start_date')) {
@@ -162,7 +168,10 @@ class AttendanceController extends Controller
             ? Carbon::parse($request->end_date)
             : now()->endOfMonth();
 
-        $query = Attendance::whereBetween('attendance_date', [$startDate, $endDate]);
+        $tenantId = $request->user()->tenant_id;
+
+        $query = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate]);
 
         // Apply branch filter if provided
         if ($request->filled('branch_id')) {
@@ -179,25 +188,31 @@ class AttendanceController extends Controller
         $averageHours = round($averageMinutes / 60, 1);
 
         // Status breakdown
-        $statusPending = Attendance::whereBetween('attendance_date', [$startDate, $endDate])
+        $statusPending = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
             ->where('status', 'pending')
             ->count();
-        $statusCheckedIn = Attendance::whereBetween('attendance_date', [$startDate, $endDate])
+        $statusCheckedIn = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
             ->where('status', 'checked_in')
             ->count();
-        $statusCheckedOut = Attendance::whereBetween('attendance_date', [$startDate, $endDate])
+        $statusCheckedOut = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
             ->where('status', 'checked_out')
             ->count();
-        $statusIncomplete = Attendance::whereBetween('attendance_date', [$startDate, $endDate])
+        $statusIncomplete = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
             ->where('status', 'incomplete')
             ->count();
 
         // Geofence breakdown
-        $geofenceWithin = Attendance::whereBetween('attendance_date', [$startDate, $endDate])
+        $geofenceWithin = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
             ->where('check_in_within_geofence', true)
             ->where('check_out_within_geofence', true)
             ->count();
-        $geofenceOutside = Attendance::whereBetween('attendance_date', [$startDate, $endDate])
+        $geofenceOutside = Attendance::where('tenant_id', $tenantId)
+            ->whereBetween('attendance_date', [$startDate, $endDate])
             ->where(function ($q) {
                 $q->where('check_in_within_geofence', false)
                   ->orWhere('check_out_within_geofence', false);
@@ -218,7 +233,7 @@ class AttendanceController extends Controller
             'geofence_outside' => $geofenceOutside,
         ];
 
-        $branches = Branch::active()->get();
+        $branches = Branch::where('tenant_id', $tenantId)->active()->get();
 
         return view('admin.attendance.statistics', compact('stats', 'branches'));
     }
