@@ -57,8 +57,8 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->index(['tenant_id', 'user_id', 'payroll_year', 'payroll_month']);
-            $table->index(['tenant_id', 'branch_id', 'payroll_year', 'payroll_month']);
+            $table->index(['tenant_id', 'user_id', 'payroll_year', 'payroll_month'], 'payroll_adjustments_tenant_user_period_idx');
+            $table->index(['tenant_id', 'branch_id', 'payroll_year', 'payroll_month'], 'payroll_adjustments_tenant_branch_period_idx');
             $table->index(['type']);
         });
     }
