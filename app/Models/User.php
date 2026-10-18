@@ -113,6 +113,38 @@ class User extends Authenticatable
     }
 
     /**
+     * Payroll: this user's pay-basis contract history.
+     */
+    public function employeeContracts(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\EmployeeContract::class);
+    }
+
+    /**
+     * Payroll: this user's permanent base-pay change history.
+     */
+    public function salaryIncreases(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\SalaryIncrease::class);
+    }
+
+    /**
+     * Payroll: this user's awards/overtime/deductions ledger entries.
+     */
+    public function payrollAdjustments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\PayrollAdjustment::class);
+    }
+
+    /**
+     * Payroll: this user's generated monthly payslips.
+     */
+    public function payrollSlips(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\PayrollSlip::class);
+    }
+
+    /**
      * Resolve the branch this user is actually operating under right now
      * (or on a given date): an active temporary HR allocation override
      * takes priority over the permanent branch_id assignment. Prefer this

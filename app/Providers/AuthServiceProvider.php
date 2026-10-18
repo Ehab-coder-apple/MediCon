@@ -85,6 +85,13 @@ class AuthServiceProvider extends ServiceProvider
             return $user->hasRole('admin') || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER);
         });
 
+        // Payroll & HR compensation data is sensitive: restricted to tenant
+        // admin and the HQ HR Manager global role, same scope as the HQ HR
+        // dashboard itself.
+        Gate::define('manage-payroll', function (User $user) {
+            return $user->hasRole('admin') || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER);
+        });
+
         Gate::define('manage-inventory', function (User $user) {
             return $user->hasPermission('manage_inventory');
         });

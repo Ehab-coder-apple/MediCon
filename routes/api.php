@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceApiController;
 use App\Http\Controllers\Api\BranchApiController;
 use App\Http\Controllers\Api\AIDocumentController;
 use App\Http\Controllers\Api\ProductInformationController;
+use App\Http\Controllers\Api\PayrollController;
 use App\Http\Controllers\Api\OpenAIProductController;
 use App\Http\Controllers\Api\BarcodeScannerController;
 use App\Http\Controllers\Api\QuickSaleController;
@@ -196,6 +197,25 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // OpenAI Product Information
         Route::post('/openai/product-info', [OpenAIProductController::class, 'getProductInfo']);
+
+        // Payroll & HR Engine (HQ HR Manager / admin only, see
+        // AuthServiceProvider's 'manage-payroll' gate)
+        Route::prefix('payroll')->group(function () {
+            Route::get('/contracts', [PayrollController::class, 'contracts']);
+            Route::post('/contracts', [PayrollController::class, 'storeContract']);
+            Route::get('/users/{userId}/salary-increases', [PayrollController::class, 'salaryIncreases']);
+
+            Route::get('/adjustments', [PayrollController::class, 'adjustments']);
+            Route::post('/adjustments', [PayrollController::class, 'storeAdjustment']);
+            Route::delete('/adjustments/{adjustment}', [PayrollController::class, 'destroyAdjustment']);
+
+            Route::get('/slips', [PayrollController::class, 'slips']);
+            Route::get('/slips/{slip}', [PayrollController::class, 'showSlip']);
+            Route::post('/slips/generate', [PayrollController::class, 'generate']);
+            Route::post('/slips/generate-all', [PayrollController::class, 'generateAll']);
+            Route::post('/slips/{slip}/approve', [PayrollController::class, 'approve']);
+            Route::post('/slips/{slip}/reject', [PayrollController::class, 'reject']);
+        });
     });
 
     // Barcode Scanner API routes (outside of /ai prefix)
