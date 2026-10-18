@@ -375,7 +375,7 @@
                          Role::HQ_HR_MANAGER). --}}
                     @if($user->hasRole('admin') || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER))
                     <!-- SECTION 6: Human Resources -->
-                    <div x-data="{ open: {{ request()->routeIs('admin.users', 'admin.activity-logs.*', 'admin.attendance.*', 'admin.leaves.*') ? 'true' : 'false' }} }" class="mt-2">
+                    <div x-data="{ open: {{ request()->routeIs('admin.users', 'admin.activity-logs.*', 'admin.attendance.*', 'admin.leaves.*', 'hq-hr.allocations', 'hq-hr.payroll.*') ? 'true' : 'false' }} }" class="mt-2">
                         <button @click="open = !open" class="w-full flex items-center justify-between px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors">
                             <div class="flex items-center">
                                 <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
@@ -417,6 +417,21 @@
                                 </svg>
                                 Leave Requests
                             </a>
+                            {{-- Branch Allocations and Payroll are reserved for the
+                                 HQ HR Manager global role (alongside admin), since they
+                                 operate across the whole corporate chain. --}}
+                            @if($user->hasRole(\App\Models\Role::HQ_HR_MANAGER) || $user->hasRole('admin'))
+                            <!-- Branch Allocations (HR) -->
+                            <a href="{{ route('hq-hr.allocations') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('hq-hr.allocations') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                                <i class="fa-solid fa-people-arrows w-4 mr-2 text-center"></i>
+                                Branch Allocations (HR)
+                            </a>
+                            <!-- Payroll -->
+                            <a href="{{ route('hq-hr.payroll.index') }}" class="flex items-center px-12 py-2 text-slate-300 hover:bg-slate-600 hover:text-white transition-colors text-sm {{ request()->routeIs('hq-hr.payroll.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                                <i class="fa-solid fa-sack-dollar w-4 mr-2 text-center"></i>
+                                Payroll
+                            </a>
+                            @endif
                         </div>
                     </div>
                     @endif
@@ -554,27 +569,13 @@
                     </div>
                     @endif
 
-                    @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER) || $user->hasRole(\App\Models\Role::HQ_HR_MANAGER) || $user->hasRole('admin'))
+                    @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER))
                     <!-- SECTION 8b: HQ Corporate Chain -->
                     <div class="mt-2">
-                        @if($user->hasRole(\App\Models\Role::HQ_INVENTORY_MANAGER))
                         <a href="{{ route('hq-inventory.dashboard') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-inventory.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
                             <i class="fa-solid fa-warehouse w-5 mr-3 text-center"></i>
                             HQ Inventory Dashboard
                         </a>
-                        @endif
-                        {{-- Admin can also manage branch allocations, alongside the
-                             dedicated HQ HR Manager global role. --}}
-                        @if($user->hasRole(\App\Models\Role::HQ_HR_MANAGER) || $user->hasRole('admin'))
-                        <a href="{{ route('hq-hr.allocations') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-hr.allocations') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
-                            <i class="fa-solid fa-people-arrows w-5 mr-3 text-center"></i>
-                            Branch Allocations (HR)
-                        </a>
-                        <a href="{{ route('hq-hr.payroll.index') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-hr.payroll.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
-                            <i class="fa-solid fa-sack-dollar w-5 mr-3 text-center"></i>
-                            Payroll
-                        </a>
-                        @endif
                     </div>
                     @endif
 

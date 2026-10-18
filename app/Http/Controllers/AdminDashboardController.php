@@ -46,8 +46,14 @@ class AdminDashboardController extends Controller
             ->whereBetween('invoice_date', [now()->startOfMonth(), now()->endOfMonth()])
             ->sum('total_amount');
 
-        $inventoryValue = (float) Batch::where('quantity', '>', 0)
-            ->selectRaw('COALESCE(SUM(cost_price * quantity), 0) as value')
+        // Valued from warehouse_stocks (the real, tenant-scoped physical
+        // stock ledger) rather than Batch::quantity, which is a legacy
+        // per-batch total that isn't tenant-scoped and can be non-zero even
+        // when the tenant has no actual stock sitting in any warehouse.
+        $inventoryValue = (float) \App\Models\WarehouseStock::where('warehouse_stocks.tenant_id', $tenantId)
+            ->where('warehouse_stocks.quantity', '>', 0)
+            ->join('batches', 'batches.id', '=', 'warehouse_stocks.batch_id')
+            ->selectRaw('COALESCE(SUM(batches.cost_price * warehouse_stocks.quantity), 0) as value')
             ->value('value');
 
         // Inventory & finance alerts
