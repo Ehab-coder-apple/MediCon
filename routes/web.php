@@ -27,6 +27,7 @@ use App\Http\Controllers\BranchAllocationOverrideController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\HqInventoryDashboardController;
 use App\Http\Controllers\HqHrDashboardController;
+use App\Http\Controllers\HqHrPayrollController;
 use App\Http\Controllers\SalesStaffDashboardController;
 use App\Http\Controllers\SubcategoryController;
 use App\Http\Controllers\SupplierController;
@@ -573,6 +574,23 @@ Route::middleware([
     Route::middleware(['can:access-hq-hr-dashboard'])->prefix('hq-hr')->name('hq-hr.')->group(function () {
         Route::get('/dashboard', [HqHrDashboardController::class, 'index'])->name('dashboard');
         Route::get('/allocations', [HqHrDashboardController::class, 'allocations'])->name('allocations');
+
+        // Payroll & HR Engine (contracts, adjustments ledger, payslips)
+        Route::prefix('payroll')->name('payroll.')->group(function () {
+            Route::get('/', [HqHrPayrollController::class, 'index'])->name('index');
+            Route::post('/contracts', [HqHrPayrollController::class, 'storeContract'])->name('contracts.store');
+            Route::get('/users/{user}/salary-increases', [HqHrPayrollController::class, 'salaryIncreases'])->name('salary-increases');
+
+            Route::get('/slips', [HqHrPayrollController::class, 'slips'])->name('slips');
+            Route::post('/slips/generate-all', [HqHrPayrollController::class, 'generateAll'])->name('slips.generate-all');
+            Route::post('/slips/generate-one', [HqHrPayrollController::class, 'generateOne'])->name('slips.generate-one');
+            Route::get('/slips/{slip}', [HqHrPayrollController::class, 'showSlip'])->name('slips.show');
+            Route::post('/slips/{slip}/approve', [HqHrPayrollController::class, 'approveSlip'])->name('slips.approve');
+            Route::post('/slips/{slip}/reject', [HqHrPayrollController::class, 'rejectSlip'])->name('slips.reject');
+
+            Route::post('/adjustments', [HqHrPayrollController::class, 'storeAdjustment'])->name('adjustments.store');
+            Route::delete('/adjustments/{adjustment}', [HqHrPayrollController::class, 'destroyAdjustment'])->name('adjustments.destroy');
+        });
     });
 });
 

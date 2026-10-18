@@ -570,6 +570,10 @@
                             <i class="fa-solid fa-people-arrows w-5 mr-3 text-center"></i>
                             Branch Allocations (HR)
                         </a>
+                        <a href="{{ route('hq-hr.payroll.index') }}" class="flex items-center px-6 py-3 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors {{ request()->routeIs('hq-hr.payroll.*') ? 'bg-blue-600 text-white border-r-2 border-blue-400' : '' }}">
+                            <i class="fa-solid fa-sack-dollar w-5 mr-3 text-center"></i>
+                            Payroll
+                        </a>
                         @endif
                     </div>
                     @endif
