@@ -572,6 +572,7 @@ Route::middleware([
     // temporary branch allocation overrides).
     Route::middleware(['can:access-hq-hr-dashboard'])->prefix('hq-hr')->name('hq-hr.')->group(function () {
         Route::get('/dashboard', [HqHrDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/allocations', [HqHrDashboardController::class, 'allocations'])->name('allocations');
     });
 });
 

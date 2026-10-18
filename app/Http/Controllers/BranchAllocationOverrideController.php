@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\BranchAllocationOverride;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use App\Services\BranchAllocationOverrideService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -72,6 +73,18 @@ class BranchAllocationOverrideController extends Controller
             return $this->fail($request, $e->getMessage());
         }
 
+        ActivityLogService::log(
+            'created',
+            'BranchAllocationOverride',
+            $override->id,
+            $user->name,
+            "{$user->name} temporarily allocated to {$targetBranch->name}",
+            null,
+            'hr',
+            'info',
+            $request->user()->tenant_id
+        );
+
         if ($request->wantsJson()) {
             return response()->json($override, 201);
         }
@@ -117,6 +130,18 @@ class BranchAllocationOverrideController extends Controller
             return $this->fail($request, $e->getMessage());
         }
 
+        ActivityLogService::log(
+            'updated',
+            'BranchAllocationOverride',
+            $override->id,
+            $override->user->name ?? null,
+            "Branch allocation for {$override->user->name} updated",
+            null,
+            'hr',
+            'info',
+            $request->user()->tenant_id
+        );
+
         if ($request->wantsJson()) {
             return response()->json($override);
         }
@@ -135,7 +160,21 @@ class BranchAllocationOverrideController extends Controller
             abort(403, 'Unauthorized access to this branch allocation override.');
         }
 
+        $employeeName = $branchAllocationOverride->user->name ?? null;
+
         $this->service->deleteOverride($branchAllocationOverride);
+
+        ActivityLogService::log(
+            'deleted',
+            'BranchAllocationOverride',
+            $branchAllocationOverride->id,
+            $employeeName,
+            "Branch allocation for {$employeeName} revoked",
+            null,
+            'hr',
+            'warning',
+            $request->user()->tenant_id
+        );
 
         if ($request->wantsJson()) {
             return response()->json(['message' => 'Branch allocation override deleted.']);

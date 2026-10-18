@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Leave;
 use App\Models\LeaveType;
 use App\Models\User;
+use App\Services\ActivityLogService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -85,6 +86,18 @@ class LeaveManagementController extends Controller
 
         $leave->approve(auth()->id(), $validated['approval_notes'] ?? null);
 
+        ActivityLogService::log(
+            'approved',
+            'Leave',
+            $leave->id,
+            $leave->user->name ?? null,
+            "Leave request for {$leave->user->name} approved",
+            null,
+            'hr',
+            'info',
+            $leave->tenant_id
+        );
+
         return redirect()->route('admin.leaves.show', $leave)
             ->with('success', 'Leave request approved successfully');
     }
@@ -102,6 +115,18 @@ class LeaveManagementController extends Controller
         ]);
 
         $leave->reject(auth()->id(), $validated['approval_notes']);
+
+        ActivityLogService::log(
+            'rejected',
+            'Leave',
+            $leave->id,
+            $leave->user->name ?? null,
+            "Leave request for {$leave->user->name} rejected",
+            null,
+            'hr',
+            'warning',
+            $leave->tenant_id
+        );
 
         return redirect()->route('admin.leaves.show', $leave)
             ->with('success', 'Leave request rejected successfully');
