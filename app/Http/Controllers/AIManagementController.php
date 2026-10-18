@@ -23,11 +23,15 @@ class AIManagementController extends Controller
      */
     public function dashboard()
     {
-        $total_documents = AIDocument::count();
-        $pending_documents = AIDocument::where('status', 'pending')->count();
-        $processed_invoices = ProcessedInvoice::count();
-        $pending_invoices = ProcessedInvoice::where('status', 'pending_review')->count();
-        $prescription_checks = PrescriptionCheck::count();
+        // Tenant isolation: same gap as Product/Batch/Attendance - these
+        // counts previously covered every tenant's documents together.
+        $tenantId = auth()->user()->tenant_id;
+
+        $total_documents = AIDocument::where('tenant_id', $tenantId)->count();
+        $pending_documents = AIDocument::where('tenant_id', $tenantId)->where('status', 'pending')->count();
+        $processed_invoices = ProcessedInvoice::where('tenant_id', $tenantId)->count();
+        $pending_invoices = ProcessedInvoice::where('tenant_id', $tenantId)->where('status', 'pending_review')->count();
+        $prescription_checks = PrescriptionCheck::where('tenant_id', $tenantId)->count();
 
         return view('admin.ai.dashboard', compact(
             'total_documents',
@@ -43,7 +47,8 @@ class AIManagementController extends Controller
      */
     public function invoices(Request $request)
     {
-        $query = ProcessedInvoice::with('aiDocument', 'items');
+        $query = ProcessedInvoice::with('aiDocument', 'items')
+            ->where('tenant_id', auth()->user()->tenant_id);
 
         // Filter by search term (invoice number)
         if ($request->has('search') && $request->search) {
@@ -65,7 +70,9 @@ class AIManagementController extends Controller
      */
     public function showInvoice($id)
     {
-        $invoice = ProcessedInvoice::with('items', 'aiDocument', 'approvedForProcessingBy', 'approvedForInventoryBy')->findOrFail($id);
+        $invoice = ProcessedInvoice::with('items', 'aiDocument', 'approvedForProcessingBy', 'approvedForInventoryBy')
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->findOrFail($id);
         return view('admin.ai.invoices.show', compact('invoice'));
     }
 
@@ -74,7 +81,9 @@ class AIManagementController extends Controller
      */
     public function viewOriginalDocument($id)
     {
-        $invoice = ProcessedInvoice::with('aiDocument')->findOrFail($id);
+        $invoice = ProcessedInvoice::with('aiDocument')
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->findOrFail($id);
 
         if (!$invoice->aiDocument || !$invoice->aiDocument->file_path) {
             abort(404, 'Original invoice document not found');
@@ -101,7 +110,7 @@ class AIManagementController extends Controller
      */
     public function approveForProcessing(Request $request, $id)
     {
-        $invoice = ProcessedInvoice::findOrFail($id);
+        $invoice = ProcessedInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         if ($invoice->workflow_stage !== 'uploaded') {
             return redirect()->back()->with('error', 'Invoice is not in uploaded stage');
@@ -124,7 +133,7 @@ class AIManagementController extends Controller
      */
     public function approveForInventory(Request $request, $id)
     {
-        $invoice = ProcessedInvoice::findOrFail($id);
+        $invoice = ProcessedInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         if ($invoice->workflow_stage !== 'processed') {
             return redirect()->back()->with('error', 'Invoice is not in processed stage');
@@ -189,6 +198,7 @@ class AIManagementController extends Controller
     public function prescriptions()
     {
         $checks = PrescriptionCheck::with('medications')
+            ->where('tenant_id', auth()->user()->tenant_id)
             ->latest()
             ->paginate(15);
 
@@ -201,6 +211,7 @@ class AIManagementController extends Controller
     public function showPrescription($id)
     {
         $check = PrescriptionCheck::with('medications.product', 'medications.alternatives')
+            ->where('tenant_id', auth()->user()->tenant_id)
             ->findOrFail($id);
 
         return view('admin.ai.prescriptions.show', compact('check'));
@@ -212,6 +223,7 @@ class AIManagementController extends Controller
     public function products()
     {
         $products = Product::with('information')
+            ->where('tenant_id', auth()->user()->tenant_id)
             ->where('is_active', true)
             ->paginate(15);
 
@@ -223,7 +235,9 @@ class AIManagementController extends Controller
      */
     public function showProduct($id, OpenAIProductService $openaiService)
     {
-        $product = Product::with('information')->findOrFail($id);
+        $product = Product::with('information')
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->findOrFail($id);
 
         // Fetch medical information from OpenAI
         $medicalInfo = null;
@@ -241,7 +255,9 @@ class AIManagementController extends Controller
      */
     public function editProduct($id)
     {
-        $product = Product::with('information')->findOrFail($id);
+        $product = Product::with('information')
+            ->where('tenant_id', auth()->user()->tenant_id)
+            ->findOrFail($id);
         return view('admin.ai.products.edit', compact('product'));
     }
 
@@ -250,7 +266,7 @@ class AIManagementController extends Controller
      */
     public function updateProduct(Request $request, $id)
     {
-        $product = Product::findOrFail($id);
+        $product = Product::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         $validated = $request->validate([
             'active_ingredients' => 'array',
@@ -279,7 +295,7 @@ class AIManagementController extends Controller
      */
     public function uploadInvoicePDF(Request $request, $id)
     {
-        $invoice = ProcessedInvoice::findOrFail($id);
+        $invoice = ProcessedInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         $validated = $request->validate([
             'pdf_file' => 'required|file|mimes:pdf|max:10240',
@@ -300,7 +316,7 @@ class AIManagementController extends Controller
      */
     public function convertToItems(Request $request, $id)
     {
-        $invoice = ProcessedInvoice::findOrFail($id);
+        $invoice = ProcessedInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         if (!$invoice->pdf_file_path) {
             return redirect()->back()->withErrors(['error' => 'No PDF file uploaded for this invoice']);
@@ -321,7 +337,7 @@ class AIManagementController extends Controller
      */
     public function selectWarehouse(Request $request, $id)
     {
-        $invoice = ProcessedInvoice::findOrFail($id);
+        $invoice = ProcessedInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         if (!$invoice->items || $invoice->items->isEmpty()) {
             return redirect()->back()->withErrors(['error' => 'No items to transfer']);
@@ -340,7 +356,7 @@ class AIManagementController extends Controller
      */
     public function approveWarehouseTransfer(Request $request, $id)
     {
-        $invoice = ProcessedInvoice::findOrFail($id);
+        $invoice = ProcessedInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         $validated = $request->validate([
             'warehouse_id' => 'required|exists:warehouses,id',

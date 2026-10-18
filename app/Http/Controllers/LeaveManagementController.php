@@ -19,7 +19,10 @@ class LeaveManagementController extends Controller
     {
         $this->authorize('access-admin-dashboard');
 
-        $query = Leave::with(['user', 'leaveType', 'approvedBy', 'tenant']);
+        // Tenant isolation: same gap as Product/Batch/Attendance - without
+        // this, /admin/leaves listed every tenant's leave requests together.
+        $query = Leave::with(['user', 'leaveType', 'approvedBy', 'tenant'])
+            ->where('tenant_id', auth()->user()->tenant_id);
 
         // Filter by status
         if ($request->filled('status')) {
@@ -61,6 +64,7 @@ class LeaveManagementController extends Controller
     public function show(Leave $leave): View
     {
         $this->authorize('access-admin-dashboard');
+        abort_unless($leave->tenant_id === auth()->user()->tenant_id, 403);
 
         $leave->load(['user', 'leaveType', 'approvedBy']);
 
@@ -73,6 +77,7 @@ class LeaveManagementController extends Controller
     public function approve(Leave $leave, Request $request): RedirectResponse
     {
         $this->authorize('access-admin-dashboard');
+        abort_unless($leave->tenant_id === auth()->user()->tenant_id, 403);
 
         $validated = $request->validate([
             'approval_notes' => 'nullable|string|max:500',
@@ -90,6 +95,7 @@ class LeaveManagementController extends Controller
     public function reject(Leave $leave, Request $request): RedirectResponse
     {
         $this->authorize('access-admin-dashboard');
+        abort_unless($leave->tenant_id === auth()->user()->tenant_id, 403);
 
         $validated = $request->validate([
             'approval_notes' => 'required|string|max:500',
@@ -108,7 +114,8 @@ class LeaveManagementController extends Controller
     {
         $this->authorize('access-admin-dashboard');
 
-        $query = Leave::with(['user', 'leaveType']);
+        $query = Leave::with(['user', 'leaveType'])
+            ->where('tenant_id', auth()->user()->tenant_id);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);

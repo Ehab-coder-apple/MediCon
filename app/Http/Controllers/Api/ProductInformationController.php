@@ -20,8 +20,13 @@ class ProductInformationController extends Controller
             'branch_id' => 'required|exists:branches,id',
         ]);
 
-        $products = Product::where('name', 'like', '%' . $request->query . '%')
-            ->orWhere('code', 'like', '%' . $request->query . '%')
+        // Tenant isolation: same gap as Product/Batch/Attendance - without
+        // this, product search/info returned every tenant's products.
+        $products = Product::where('tenant_id', $request->user()->tenant_id)
+            ->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->query . '%')
+                  ->orWhere('code', 'like', '%' . $request->query . '%');
+            })
             ->with('information')
             ->limit(10)
             ->get();
@@ -32,9 +37,11 @@ class ProductInformationController extends Controller
     /**
      * Get detailed product information
      */
-    public function getProductInfo($productId)
+    public function getProductInfo(Request $request, $productId)
     {
-        $product = Product::with('information')->findOrFail($productId);
+        $product = Product::with('information')
+            ->where('tenant_id', $request->user()->tenant_id)
+            ->findOrFail($productId);
 
         return response()->json([
             'id' => $product->id,
@@ -56,10 +63,11 @@ class ProductInformationController extends Controller
             'branch_id' => 'required|exists:branches,id',
         ]);
 
-        $product = Product::findOrFail($productId);
+        $product = Product::where('tenant_id', $request->user()->tenant_id)->findOrFail($productId);
 
         // Find alternatives based on category or active ingredients
         $alternatives = Product::where('id', '!=', $productId)
+            ->where('tenant_id', $request->user()->tenant_id)
             ->where('category_id', $product->category_id)
             ->where('is_active', true)
             ->with('information')
@@ -110,7 +118,7 @@ class ProductInformationController extends Controller
      */
     public function updateProductInfo(Request $request, $productId)
     {
-        $product = Product::findOrFail($productId);
+        $product = Product::where('tenant_id', $request->user()->tenant_id)->findOrFail($productId);
         $this->authorize('update', $product);
 
         $validated = $request->validate([
