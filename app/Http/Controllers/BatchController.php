@@ -18,7 +18,14 @@ class BatchController extends Controller
     {
         $this->authorize('viewAny', Batch::class);
 
-        $query = Batch::with('product');
+        // Tenant isolation: Batch has no tenant_id column of its own, so
+        // scope through the related Product (see ProductController::index
+        // for the same fix on /admin/products - without this, /admin/batches
+        // showed every tenant's batches mixed together).
+        $query = Batch::with('product')
+            ->whereHas('product', function ($q) use ($request) {
+                $q->where('tenant_id', $request->user()->tenant_id);
+            });
 
         // Filter by product name
         if ($request->filled('product_name')) {
@@ -86,7 +93,8 @@ class BatchController extends Controller
     {
         $this->authorize('create', Batch::class);
 
-        $products = Product::where('is_active', true)->orderBy('name')->get();
+        $products = Product::where('tenant_id', $request->user()->tenant_id)
+            ->where('is_active', true)->orderBy('name')->get();
         $selectedProduct = $request->get('product_id') ? Product::find($request->get('product_id')) : null;
 
         return view('batches.create', compact('products', 'selectedProduct'));
@@ -141,7 +149,8 @@ class BatchController extends Controller
     {
         $this->authorize('update', $batch);
 
-        $products = Product::where('is_active', true)->orderBy('name')->get();
+        $products = Product::where('tenant_id', auth()->user()->tenant_id)
+            ->where('is_active', true)->orderBy('name')->get();
         return view('batches.edit', compact('batch', 'products'));
     }
 

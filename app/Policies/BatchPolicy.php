@@ -22,8 +22,9 @@ class BatchPolicy
      */
     public function view(User $user, Batch $batch): bool
     {
-        return $user->hasPermission('view_inventory') ||
-               $user->hasPermission('manage_batches');
+        return $user->tenant_id === $batch->product?->tenant_id &&
+               ($user->hasPermission('view_inventory') ||
+                $user->hasPermission('manage_batches'));
     }
 
     /**
@@ -39,7 +40,8 @@ class BatchPolicy
      */
     public function update(User $user, Batch $batch): bool
     {
-        return $user->hasPermission('manage_batches');
+        return $user->tenant_id === $batch->product?->tenant_id &&
+               $user->hasPermission('manage_batches');
     }
 
     /**
@@ -47,7 +49,8 @@ class BatchPolicy
      */
     public function delete(User $user, Batch $batch): bool
     {
-        return $user->hasPermission('manage_batches');
+        return $user->tenant_id === $batch->product?->tenant_id &&
+               $user->hasPermission('manage_batches');
     }
 
     /**
@@ -55,7 +58,8 @@ class BatchPolicy
      */
     public function restore(User $user, Batch $batch): bool
     {
-        return $user->hasPermission('manage_batches');
+        return $user->tenant_id === $batch->product?->tenant_id &&
+               $user->hasPermission('manage_batches');
     }
 
     /**
@@ -63,6 +67,7 @@ class BatchPolicy
      */
     public function forceDelete(User $user, Batch $batch): bool
     {
-        return $user->hasPermission('manage_batches');
+        return $user->tenant_id === $batch->product?->tenant_id &&
+               $user->hasPermission('manage_batches');
     }
 }
