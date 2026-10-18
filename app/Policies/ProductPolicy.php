@@ -22,8 +22,9 @@ class ProductPolicy
      */
     public function view(User $user, Product $product): bool
     {
-        return $user->hasPermission('view_inventory') ||
-               $user->hasPermission('manage_products');
+        return $user->tenant_id === $product->tenant_id &&
+               ($user->hasPermission('view_inventory') ||
+                $user->hasPermission('manage_products'));
     }
 
     /**
@@ -39,7 +40,8 @@ class ProductPolicy
      */
     public function update(User $user, Product $product): bool
     {
-        return $user->hasPermission('manage_products');
+        return $user->tenant_id === $product->tenant_id &&
+               $user->hasPermission('manage_products');
     }
 
     /**
@@ -47,7 +49,8 @@ class ProductPolicy
      */
     public function delete(User $user, Product $product): bool
     {
-        return $user->hasPermission('manage_products');
+        return $user->tenant_id === $product->tenant_id &&
+               $user->hasPermission('manage_products');
     }
 
     /**
@@ -55,7 +58,8 @@ class ProductPolicy
      */
     public function restore(User $user, Product $product): bool
     {
-        return $user->hasPermission('manage_products');
+        return $user->tenant_id === $product->tenant_id &&
+               $user->hasPermission('manage_products');
     }
 
     /**
@@ -63,6 +67,7 @@ class ProductPolicy
      */
     public function forceDelete(User $user, Product $product): bool
     {
-        return $user->hasPermission('manage_products');
+        return $user->tenant_id === $product->tenant_id &&
+               $user->hasPermission('manage_products');
     }
 }

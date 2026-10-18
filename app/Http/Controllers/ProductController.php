@@ -30,7 +30,12 @@ class ProductController extends Controller
     {
         $this->authorize('viewAny', Product::class);
 
-        $query = Product::with(['batches', 'category', 'subcategory', 'location'])
+        // Tenant isolation: without this, /admin/products returns every
+        // tenant's products mixed together (e.g. an admin from an empty
+        // tenant seeing another company's full catalog by coincidence of
+        // shared permissions).
+        $query = Product::where('tenant_id', $request->user()->tenant_id)
+            ->with(['batches', 'category', 'subcategory', 'location'])
             ->withCount('batches');
 
         // Apply filters
